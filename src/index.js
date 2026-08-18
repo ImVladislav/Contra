@@ -7,7 +7,8 @@ const pixiApp = new PIXI.Application({
     height: 768,
 });
 
-await PIXI.Assets.load("./assets/atlas.json");
+const manifest = await PIXI.Assets.load("./assets/sprites/manifest.json");
+await PIXI.Assets.load(manifest.sprites.map((name) => `./assets/sprites/${name}.png`));
 
 const assets = new AssetsFactory();
 

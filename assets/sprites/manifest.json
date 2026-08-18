@@ -1,0 +1,93 @@
+{
+  "sprites": [
+    "boss0000",
+    "bossdoor0000",
+    "bossdoor0001",
+    "bossdoor0002",
+    "bossgun0000",
+    "bossgun0001",
+    "bridge0000",
+    "explosion0000",
+    "explosion0001",
+    "explosion0002",
+    "explosion0003",
+    "ground0000",
+    "jump0000",
+    "jump0001",
+    "jump0002",
+    "jump0003",
+    "junglebottom0000",
+    "jungletop0000",
+    "lay0000",
+    "mounts0000",
+    "platform0000",
+    "powerup0000",
+    "run0000",
+    "run0001",
+    "run0002",
+    "run0003",
+    "run0004",
+    "rundown0000",
+    "rundown0001",
+    "rundown0002",
+    "runnerjump0000",
+    "runnerrun0000",
+    "runnerrun0001",
+    "runnerrun0002",
+    "runnerrun0003",
+    "runnerrun0004",
+    "runup0000",
+    "runup0001",
+    "runup0002",
+    "spreadgun0000",
+    "stay0000",
+    "stayup0000",
+    "tourelle0000",
+    "tourellegun0000",
+    "water0000"
+  ],
+  "animations": {
+    "jump": [
+      "jump0000",
+      "jump0001",
+      "jump0002",
+      "jump0003"
+    ],
+    "rundown": [
+      "rundown0000",
+      "rundown0001",
+      "rundown0002"
+    ],
+    "runup": [
+      "runup0000",
+      "runup0001",
+      "runup0002"
+    ],
+    "run": [
+      "run0000",
+      "run0002",
+      "run0004",
+      "run0003",
+      "run0002",
+      "run0001"
+    ],
+    "runnerrun": [
+      "runnerrun0000",
+      "runnerrun0001",
+      "runnerrun0002",
+      "runnerrun0003",
+      "runnerrun0004"
+    ],
+    "bossdoor": [
+      "bossdoor0000",
+      "bossdoor0001",
+      "bossdoor0002"
+    ],
+    "explosion": [
+      "explosion0000",
+      "explosion0001",
+      "explosion0002",
+      "explosion0003"
+    ]
+  }
+}

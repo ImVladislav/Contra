@@ -1,21 +1,18 @@
-import { BaseTexture, Spritesheet, Assets } from "../lib/pixi.mjs";
+import { Assets } from "../lib/pixi.mjs";
 
 export default class AssetsFactory{
 
-    #spritesheet;
+    #manifest;
 
     constructor(){
-        this.#spritesheet = new Spritesheet(
-            BaseTexture.from("./assets/atlas.png"),
-            Assets.cache.get("./assets/atlas.json").data);
-        this.#spritesheet.parse();
+        this.#manifest = Assets.cache.get("./assets/sprites/manifest.json");
     }
 
     getTexture(textureName){
-        return this.#spritesheet.textures[textureName];
+        return Assets.cache.get(`./assets/sprites/${textureName}.png`);
     }
 
     getAnimationTextures(animationName){
-        return this.#spritesheet.animations[animationName];
+        return this.#manifest.animations[animationName].map((name) => this.getTexture(name));
     }
 }
