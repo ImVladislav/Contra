@@ -13,10 +13,6 @@ export default class StaticBackground extends Container{
             star.y = Math.random() * screenSize.height;
         }
 
-        const water = new Graphics();
-        water.beginFill(0x0072ec);
-        water.drawRect(0, screenSize.height/2+130, screenSize.width, screenSize.height);
-        this.addChild(water);
     }
 
     #createStar(){

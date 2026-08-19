@@ -35,6 +35,7 @@ export default class Hero extends Entity{
 
     #isLay = false;
     #isStayUp = false;
+    #isDying = false;
 
     #heroWeaponUnit;
 
@@ -82,6 +83,11 @@ export default class Hero extends Entity{
     }
 
     damage(){
+        if (this.isDead || this.#isDying) {
+            return;
+        }
+
+        this.#isDying = true;
         this.#movement.x = 0;
         this.#GRAVITY_FORCE = 0;
         this.#velocityX = 0;
@@ -90,6 +96,7 @@ export default class Hero extends Entity{
         const deadAnimation = this._view.showAndGetDeadAnimation();
         deadAnimation.onComplete = () => {
             this.dead();
+            this.#isDying = false;
             deadAnimation.removeFromParent();
         }
     }
@@ -207,6 +214,7 @@ export default class Hero extends Entity{
 
     reset(){
         this.#GRAVITY_FORCE = 0.2;
+        this.#isDying = false;
         this._view.reset();
         this.resuraction();
     }

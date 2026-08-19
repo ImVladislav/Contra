@@ -51,17 +51,14 @@ export default class PlatformFactory{
     }
 
     createWater(x, y){
-        const skin = new Graphics();
-        skin.beginFill(0x0072ec);
-        skin.drawRect(0, -this.#platformHeight, this.#platformWidth, this.#platformHeight);
-        skin.lineTo(this.#platformWidth, this.#platformHeight);
-
-        const waterTop = new Sprite(this.#assets.getTexture("water0000"));
-        waterTop.y = -this.#platformHeight;
+        const water = new Sprite(this.#assets.getTexture("water0000"));
+        water.x = 0;
+        water.y = -this.#platformHeight;
+        water.width = this.#platformWidth;
+        water.height = 96;
 
         const view = new PlatformView(this.#platformWidth, this.#platformHeight);
-        view.addChild(skin);
-        view.addChild(waterTop);
+        view.addChild(water);
 
         const platform = new Platform(view);
         platform.x = x;

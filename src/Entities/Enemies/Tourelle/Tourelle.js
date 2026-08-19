@@ -24,7 +24,7 @@ export default class Tourelle extends Entity{
         }
 
         if(!this.isActive){
-            if(this.x - this.#target.x < 512 + this.collisionBox.width*2){
+            if(Math.abs(this.x - this.#target.x) < 720){
                 this.isActive = true;
             }
             return;

@@ -7,6 +7,15 @@ export default class KeyboardProcessor{
         KeyA:{
             isDown:false
         },
+        KeyF:{
+            isDown:false
+        },
+        Space:{
+            isDown:false
+        },
+        KeyP:{
+            isDown:false
+        },
         ArrowLeft:{
             isDown:false
         },
@@ -17,6 +26,12 @@ export default class KeyboardProcessor{
             isDown:false
         },
         ArrowDown:{
+            isDown:false
+        },
+        Escape:{
+            isDown:false
+        },
+        Enter:{
             isDown:false
         },
     }

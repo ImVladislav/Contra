@@ -3,8 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Contra</title>
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
+            background: radial-gradient(circle at center, #18354a 0%, #07131f 70%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-viewport {
+            width: min(100vw, 133.3333vh);
+            height: min(100vh, 75vw);
+            box-sizing: border-box;
+            overflow: hidden;
+            border-left: 4px solid #2d5d75;
+            border-right: 4px solid #2d5d75;
+            box-shadow: 0 0 0 2px #091b29, 0 0 40px rgba(0, 0, 0, 0.7);
+        }
+
+        .game-viewport canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .touch-controls {
+            display: none;
+        }
+
+        @media (pointer: coarse), (max-width: 800px) {
+            .touch-controls {
+                position: fixed;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                z-index: 10;
+                display: flex;
+                align-items: flex-end;
+                justify-content: space-between;
+                padding: 12px max(14px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
+                pointer-events: none;
+                touch-action: none;
+            }
+
+            .touch-dpad,
+            .touch-actions {
+                position: relative;
+                width: clamp(132px, 31vw, 220px);
+                height: clamp(132px, 31vw, 220px);
+                pointer-events: auto;
+            }
+
+            .touch-actions {
+                width: clamp(174px, 38vw, 280px);
+                height: clamp(132px, 31vw, 220px);
+            }
+
+            .touch-button {
+                position: absolute;
+                display: grid;
+                place-items: center;
+                box-sizing: border-box;
+                width: clamp(42px, 11vw, 72px);
+                height: clamp(42px, 11vw, 72px);
+                border: 2px solid rgba(255, 255, 255, 0.48);
+                border-radius: 50%;
+                color: #ffffff;
+                background: rgba(7, 19, 31, 0.76);
+                box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
+                font: 700 clamp(11px, 2.7vw, 17px)/1 Arial, sans-serif;
+                -webkit-tap-highlight-color: transparent;
+                user-select: none;
+                touch-action: none;
+            }
+
+            .touch-button.is-pressed,
+            .touch-button:active {
+                color: #07131f;
+                background: #ffd166;
+                filter: brightness(1.15);
+            }
+
+            .touch-up { top: 0; left: 50%; transform: translateX(-50%); }
+            .touch-left { top: 50%; left: 0; transform: translateY(-50%); }
+            .touch-down { bottom: 0; left: 50%; transform: translateX(-50%); }
+            .touch-right { top: 50%; right: 0; transform: translateY(-50%); }
+
+            .touch-actions .touch-button { width: clamp(48px, 12vw, 78px); height: clamp(48px, 12vw, 78px); }
+            .touch-start { top: 0; left: 0; }
+            .touch-pause { top: 0; right: 0; }
+            .touch-jump { bottom: 0; left: 15%; }
+            .touch-fire { right: 15%; bottom: 0; color: #ffd166; border-color: #ffd166; }
+        }
+
+        @media (orientation: portrait) and (max-width: 600px) {
+            .game-viewport {
+                position: absolute;
+                top: 5vh;
+                width: 100vw;
+                height: 75vw;
+            }
+
+            .touch-controls {
+                padding-bottom: max(10px, env(safe-area-inset-bottom));
+            }
+        }
+    </style>
 </head>
 <body>
     <script src="src/index.js" type="module"></script>
