@@ -154,7 +154,7 @@ export default class Game {
         this.#menuMode = "orientation";
         this.#selectedMenuOption = 0;
         this.#menuContainer?.destroy({ children: true });
-        this.#menuContainer = this.#createMenu("ПОВЕРНІТЬ ЕКРАН", ["ГОРИЗОНТАЛЬНИЙ РЕЖИМ"], "Для гри поверніть телефон або планшет боком");
+        this.#menuContainer = this.#createMenu("ПОВЕРНІТЬ ГРУ", ["ГОРИЗОНТАЛЬНО"], "Поверніть телефон або планшет боком, щоб продовжити");
     }
 
     #createMenu(title, options, hint) {

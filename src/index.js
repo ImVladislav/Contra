@@ -27,15 +27,8 @@ const touchControls = document.createElement("div");
 touchControls.className = "touch-controls";
 touchControls.setAttribute("aria-label", "Мобільне керування");
 touchControls.innerHTML = `
-    <div class="touch-dpad" aria-label="Рух">
-        <button class="touch-button touch-up-left" data-keys="ArrowUp,ArrowLeft" aria-label="Вгору і ліворуч">&#8598;</button>
-        <button class="touch-button touch-up" data-keys="ArrowUp" aria-label="Вгору">&#9650;</button>
-        <button class="touch-button touch-up-right" data-keys="ArrowUp,ArrowRight" aria-label="Вгору і праворуч">&#8599;</button>
-        <button class="touch-button touch-left" data-keys="ArrowLeft" aria-label="Ліворуч">&#9664;</button>
-        <button class="touch-button touch-down-left" data-keys="ArrowDown,ArrowLeft" aria-label="Вниз і ліворуч">&#8601;</button>
-        <button class="touch-button touch-down" data-keys="ArrowDown" aria-label="Вниз">&#9660;</button>
-        <button class="touch-button touch-down-right" data-keys="ArrowDown,ArrowRight" aria-label="Вниз і праворуч">&#8600;</button>
-        <button class="touch-button touch-right" data-keys="ArrowRight" aria-label="Праворуч">&#9654;</button>
+    <div class="touch-joystick" aria-label="Віртуальний джойстик">
+        <div class="touch-stick"><div class="touch-stick-knob"></div></div>
     </div>
     <div class="touch-actions">
         <button class="touch-button touch-start" data-keys="Enter" aria-label="Почати або підтвердити">START</button>
@@ -59,30 +52,100 @@ window.addEventListener("orientationchange", updateMobileOrientation);
 updateMobileOrientation();
 
 const touchKeyPresses = new Map();
-touchControls.querySelectorAll("[data-keys]").forEach((button) => {
+const pressTouchKey = (keyCode) => {
+    const presses = touchKeyPresses.get(keyCode) ?? 0;
+    touchKeyPresses.set(keyCode, presses + 1);
+    if (presses == 0) {
+        game.keyboardProcessor.onKeyDown({ code: keyCode });
+    }
+};
+const releaseTouchKey = (keyCode) => {
+    const presses = Math.max((touchKeyPresses.get(keyCode) ?? 1) - 1, 0);
+    touchKeyPresses.set(keyCode, presses);
+    if (presses == 0) {
+        game.keyboardProcessor.onKeyUp({ code: keyCode });
+    }
+};
+
+const joystick = touchControls.querySelector(".touch-joystick");
+const joystickKnob = touchControls.querySelector(".touch-stick-knob");
+let joystickPointerId;
+let joystickKeys = new Set();
+const updateJoystick = (event) => {
+    const bounds = joystick.getBoundingClientRect();
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+    const maxDistance = bounds.width * 0.3;
+    const deltaX = event.clientX - centerX;
+    const deltaY = event.clientY - centerY;
+    const distance = Math.min(Math.hypot(deltaX, deltaY), maxDistance);
+    const angle = Math.atan2(deltaY, deltaX);
+    const knobX = Math.cos(angle) * distance;
+    const knobY = Math.sin(angle) * distance;
+    joystickKnob.style.transform = `translate(calc(-50% + ${knobX}px), calc(-50% + ${knobY}px))`;
+
+    const nextKeys = new Set();
+    if (distance > bounds.width * 0.12) {
+        if (Math.abs(deltaX) > bounds.width * 0.12) {
+            nextKeys.add(deltaX < 0 ? "ArrowLeft" : "ArrowRight");
+        }
+        if (Math.abs(deltaY) > bounds.width * 0.12) {
+            nextKeys.add(deltaY < 0 ? "ArrowUp" : "ArrowDown");
+        }
+    }
+    joystickKeys.forEach((keyCode) => {
+        if (!nextKeys.has(keyCode)) {
+            releaseTouchKey(keyCode);
+        }
+    });
+    nextKeys.forEach((keyCode) => {
+        if (!joystickKeys.has(keyCode)) {
+            pressTouchKey(keyCode);
+        }
+    });
+    joystickKeys = nextKeys;
+};
+const releaseJoystick = (event) => {
+    if (event.pointerId != joystickPointerId) {
+        return;
+    }
+    joystickKeys.forEach(releaseTouchKey);
+    joystickKeys = new Set();
+    joystickPointerId = undefined;
+    joystickKnob.style.transform = "translate(-50%, -50%)";
+};
+joystick.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    joystickPointerId = event.pointerId;
+    joystick.setPointerCapture?.(event.pointerId);
+    updateJoystick(event);
+});
+joystick.addEventListener("pointermove", (event) => {
+    if (event.pointerId == joystickPointerId) {
+        event.preventDefault();
+        updateJoystick(event);
+    }
+});
+joystick.addEventListener("pointerup", releaseJoystick);
+joystick.addEventListener("pointercancel", releaseJoystick);
+joystick.addEventListener("lostpointercapture", releaseJoystick);
+
+touchControls.querySelectorAll(".touch-actions [data-keys]").forEach((button) => {
     const keyCodes = button.dataset.keys.split(",");
     const pressedKeys = new Set();
     const press = (event) => {
         event.preventDefault();
         button.setPointerCapture?.(event.pointerId);
         keyCodes.forEach((keyCode) => {
-            const presses = touchKeyPresses.get(keyCode) ?? 0;
-            touchKeyPresses.set(keyCode, presses + 1);
             pressedKeys.add(keyCode);
-            if (presses == 0) {
-                game.keyboardProcessor.onKeyDown({ code: keyCode });
-            }
+            pressTouchKey(keyCode);
         });
         button.classList.add("is-pressed");
     };
     const release = (event) => {
         event.preventDefault();
         pressedKeys.forEach((keyCode) => {
-            const presses = Math.max((touchKeyPresses.get(keyCode) ?? 1) - 1, 0);
-            touchKeyPresses.set(keyCode, presses);
-            if (presses == 0) {
-                game.keyboardProcessor.onKeyUp({ code: keyCode });
-            }
+            releaseTouchKey(keyCode);
         });
         pressedKeys.clear();
         button.classList.remove("is-pressed");
