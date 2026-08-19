@@ -61,6 +61,15 @@ export default class KeyboardProcessor{
         }
     }
 
+    releaseAll(){
+        for (const key of Object.values(this.#keyMap)) {
+            if (key.isDown) {
+                key.executeUp?.call(this.#gameContext);
+            }
+            key.isDown = false;
+        }
+    }
+
     isButtonPressed(keyName){
         return this.#keyMap[keyName]?.isDown;
     }

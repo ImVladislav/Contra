@@ -29,6 +29,7 @@ export default class Game {
     #menuMode = "main";
     #selectedMenuOption = 0;
     #characters = ["Крам", "ДжастВ"];
+    #orientationReturnMode = "main";
 
     keyboardProcessor;
 
@@ -65,6 +66,30 @@ export default class Game {
         this.#weapon.update(this.#hero.bulletContext);
 
         this.#checkGameStatus();
+    }
+
+    setMobileLandscape(isLandscape) {
+        if (isLandscape) {
+            if (this.#menuMode != "orientation") {
+                return;
+            }
+
+            if (this.#orientationReturnMode == "playing" || this.#orientationReturnMode == "pause") {
+                this.#showPauseMenu();
+            }
+            else {
+                this.#showMainMenu();
+            }
+            return;
+        }
+
+        if (this.#menuMode == "orientation") {
+            return;
+        }
+
+        this.keyboardProcessor.releaseAll();
+        this.#orientationReturnMode = this.#menuMode;
+        this.#showOrientationMenu();
     }
 
     #startGame() {
@@ -125,6 +150,13 @@ export default class Game {
         this.#menuContainer = this.#createMenu("ПАУЗА", ["Продовжити", "Головне меню"], "Стрілки - вибір, Enter - підтвердити");
     }
 
+    #showOrientationMenu() {
+        this.#menuMode = "orientation";
+        this.#selectedMenuOption = 0;
+        this.#menuContainer?.destroy({ children: true });
+        this.#menuContainer = this.#createMenu("ПОВЕРНІТЬ ЕКРАН", ["ГОРИЗОНТАЛЬНИЙ РЕЖИМ"], "Для гри поверніть телефон або планшет боком");
+    }
+
     #createMenu(title, options, hint) {
         const container = new Container();
         const background = new Graphics();
@@ -167,6 +199,10 @@ export default class Game {
     }
 
     #handleMenuKey(keyName) {
+        if (this.#menuMode == "orientation") {
+            return;
+        }
+
         if (keyName == "ArrowUp" || keyName == "ArrowDown") {
             const optionCount = this.#menuMode == "main" ? this.#characters.length : 2;
             const direction = keyName == "ArrowDown" ? 1 : -1;

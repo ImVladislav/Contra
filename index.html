@@ -99,6 +99,10 @@
             .touch-left { top: 50%; left: 0; transform: translateY(-50%); }
             .touch-down { bottom: 0; left: 50%; transform: translateX(-50%); }
             .touch-right { top: 50%; right: 0; transform: translateY(-50%); }
+            .touch-up-left { top: 0; left: 0; }
+            .touch-up-right { top: 0; right: 0; }
+            .touch-down-left { bottom: 0; left: 0; }
+            .touch-down-right { right: 0; bottom: 0; }
 
             .touch-actions .touch-button { width: clamp(48px, 12vw, 78px); height: clamp(48px, 12vw, 78px); }
             .touch-start { top: 0; left: 0; }
@@ -118,6 +122,7 @@
             }
 
             .touch-controls {
+                display: none;
                 padding-bottom: max(10px, env(safe-area-inset-bottom));
             }
         }
