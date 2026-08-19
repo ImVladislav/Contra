@@ -64,6 +64,7 @@ export default class PlatformFactory{
         platform.x = x;
         platform.y = y;
         platform.type = "box";
+        platform.isWater = true;
         this.#worldContainer.foreground.addChild(view);
 
         return platform;

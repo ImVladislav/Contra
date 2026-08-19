@@ -79,8 +79,9 @@ export default class Runner extends Entity{
 
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
+        const targetInWater = this.#target.y > 650;
 
-        if (this.#target.isDead) {
+        if (this.#target.isDead || targetInWater) {
             this.#movement.x = -1;
         }
         else if (this.x > this.#target.x + 48) {
@@ -97,7 +98,7 @@ export default class Runner extends Entity{
         this.x += this.#velocityX;
 
         this.#jumpTimer++;
-        if (this.#state == States.Stay && this.#jumpTimer > 90 && Math.random() < this.jumpBehaviorKoef) {
+        if (!targetInWater && this.#state == States.Stay && this.#jumpTimer > 90 && Math.random() < this.jumpBehaviorKoef) {
             this.jump();
             this.#jumpTimer = 0;
         }
@@ -107,7 +108,7 @@ export default class Runner extends Entity{
                 if(Math.random() > this.jumpBehaviorKoef){
                     this._view.showFall();
                 }
-                else{
+                else if (!targetInWater){
                     this.jump();
                 }
             }

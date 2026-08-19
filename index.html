@@ -22,6 +22,9 @@
         .game-viewport {
             width: min(100vw, 133.3333vh);
             height: min(100vh, 75vw);
+            width: min(100vw, calc(100dvh * 4 / 3));
+            height: min(100dvh, calc(100vw * 3 / 4));
+            aspect-ratio: 4 / 3;
             box-sizing: border-box;
             overflow: hidden;
             border-left: 4px solid #2d5d75;
@@ -107,9 +110,11 @@
         @media (orientation: portrait) and (max-width: 600px) {
             .game-viewport {
                 position: absolute;
-                top: 5vh;
+                top: 2vh;
+                top: 2dvh;
                 width: 100vw;
-                height: 75vw;
+                height: min(75vw, 96vh);
+                height: min(75vw, 96dvh);
             }
 
             .touch-controls {
