@@ -30,6 +30,8 @@ export default class Game {
     #selectedMenuOption = 0;
     #characters = ["Крам", "ДжастВ"];
     #orientationReturnMode = "main";
+    #heroIntroOverlay;
+    #isGodModeEnabled = false;
 
     keyboardProcessor;
 
@@ -107,6 +109,13 @@ export default class Game {
         const heroFactory = new HeroFactory(this.#worldContainer.game, this.#assets);
         this.#hero = heroFactory.create(160, 100);
         this.#entities.push(this.#hero);
+        if (this.#isGodModeEnabled) {
+            this.#hero.setGodMode(true);
+        }
+        else {
+            this.#hero.setInvulnerable(3);
+        }
+        this.#showHeroIntro();
 
         const enemyFactory = new EnemiesFactory(this.#worldContainer.game, this.#hero, this.#bulletFactory, this.#entities, this.#assets);
         const platformFactory = new PlatformFactory(this.#worldContainer, this.#assets);
@@ -142,6 +151,82 @@ export default class Game {
         this.#selectedMenuOption = 0;
         this.#menuContainer?.destroy({ children: true });
         this.#menuContainer = this.#createMenu("ВИБІР ПЕРСОНАЖА", this.#characters, "Стрілки - вибір, Enter - почати | Space - стрибок, F - вогонь, P - пауза");
+        this.#createGodModeCheckbox();
+    }
+
+    #createGodModeCheckbox() {
+        const existing = document.getElementById("game-godmode-checkbox");
+        if (existing) {
+            existing.remove();
+        }
+
+        const wrapper = document.createElement("label");
+        wrapper.id = "game-godmode-checkbox";
+        wrapper.style.position = "fixed";
+        wrapper.style.right = "18px";
+        wrapper.style.top = "18px";
+        wrapper.style.zIndex = "25";
+        wrapper.style.display = "flex";
+        wrapper.style.alignItems = "center";
+        wrapper.style.gap = "8px";
+        wrapper.style.padding = "10px 14px";
+        wrapper.style.borderRadius = "12px";
+        wrapper.style.background = "rgba(7, 19, 31, 0.8)";
+        wrapper.style.border = "1px solid rgba(255, 209, 102, 0.7)";
+        wrapper.style.color = "#f5f7fa";
+        wrapper.style.font = "600 14px/1 Arial, sans-serif";
+        wrapper.style.cursor = "pointer";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = this.#isGodModeEnabled;
+        checkbox.addEventListener("change", (event) => {
+            this.#isGodModeEnabled = event.target.checked;
+        });
+
+        const text = document.createTextNode("Безсмертя");
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(text);
+
+        document.body.appendChild(wrapper);
+    }
+
+    #showHeroIntro() {
+        const heroProfiles = {
+            "Крам": {
+                portrait: "К",
+                text: "Слухай, тут немає часу на розмови. Ставимося до роботи як до бою.",
+            },
+            "ДжастВ": {
+                portrait: "Д",
+                text: "Відмінна команда, рота. Поки я в живих, ми йдемо далі.",
+            },
+        };
+
+        const profile = heroProfiles[this.#characters[this.#selectedMenuOption]] ?? heroProfiles["Крам"];
+        const container = this.#pixiApp.view.parentElement ?? document.body;
+        const intro = document.createElement("div");
+        intro.className = "hero-intro";
+        intro.innerHTML = `
+            <div class="hero-intro__card">
+                <div class="hero-intro__portrait">${profile.portrait}</div>
+                <div class="hero-intro__body">
+                    <div class="hero-intro__name">${this.#characters[this.#selectedMenuOption]}</div>
+                    <div class="hero-intro__text">${profile.text}</div>
+                </div>
+            </div>
+        `;
+
+        this.#heroIntroOverlay?.remove();
+        this.#heroIntroOverlay = intro;
+        container.appendChild(intro);
+
+        window.setTimeout(() => {
+            intro.remove();
+            if (this.#heroIntroOverlay === intro) {
+                this.#heroIntroOverlay = undefined;
+            }
+        }, 3000);
     }
 
     #showPauseMenu() {
@@ -244,6 +329,9 @@ export default class Game {
 
         const isHeroDead = !this.#entities.some(e => e.type == "hero") && this.#hero.isDead;
         if(isHeroDead){
+            this.keyboardProcessor.releaseAll();
+            this.#weapon.stopFire();
+
             this.#entities.push(this.#hero);
             this.#worldContainer.game.addChild(this.#hero._view);
             this.#hero.reset();
@@ -271,6 +359,10 @@ export default class Game {
     }
 
     #checkDamage(entity){
+        if (entity.type == "hero" && this.#isGodModeEnabled) {
+            return;
+        }
+
         const damagers = this.#entities.filter(damager => ((entity.type == "enemy" || entity.type == "powerupBox") && damager.type == "heroBullet")
                                                         ||(entity.type == "hero" && (damager.type == "enemyBullet" || damager.type == "enemy")));
         
@@ -464,6 +556,10 @@ export default class Game {
     }
 
     #checkEntityStatus(entity, index){
+        if (entity.type == "hero" && this.#isScreenOut(entity)) {
+            entity.dead();
+        }
+
         if(entity.isDead || this.#isScreenOut(entity)){
             entity.removeFromStage();
             this.#entities.splice(index, 1);

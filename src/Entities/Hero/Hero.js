@@ -36,6 +36,8 @@ export default class Hero extends Entity{
     #isLay = false;
     #isStayUp = false;
     #isDying = false;
+    #invulnerabilityFrames = 0;
+    #godMode = false;
 
     #heroWeaponUnit;
 
@@ -62,10 +64,22 @@ export default class Hero extends Entity{
         return this.#prevPoint;
     }
 
+    get isMoving() {
+        return Math.abs(this.x - this.#prevPoint.x) > 0.5 || Math.abs(this.y - this.#prevPoint.y) > 0.5;
+    }
+
     update() {
 
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
+
+        if (this.#invulnerabilityFrames > 0) {
+            this.#invulnerabilityFrames--;
+            this._view.setBlinking(this.#invulnerabilityFrames % 2 == 0);
+            if (this.#invulnerabilityFrames == 0) {
+                this._view.setBlinking(false);
+            }
+        }
 
         this.#velocityX = this.#movement.x * this.#SPEED;
         this.x += this.#velocityX;
@@ -82,8 +96,24 @@ export default class Hero extends Entity{
         this.y += this.#velocityY;
     }
 
+    get isInvulnerable() {
+        return this.#godMode || this.#invulnerabilityFrames > 0;
+    }
+
+    setInvulnerable(seconds) {
+        this.#godMode = false;
+        this.#invulnerabilityFrames = Math.max(0, Math.round(seconds * 60));
+        this._view.setBlinking(this.#invulnerabilityFrames > 0);
+    }
+
+    setGodMode(enabled) {
+        this.#godMode = enabled;
+        this.#invulnerabilityFrames = enabled ? 999999 : 0;
+        this._view.setBlinking(enabled);
+    }
+
     damage(){
-        if (this.isDead || this.#isDying) {
+        if (this.isDead || this.#isDying || this.isInvulnerable) {
             return;
         }
 
@@ -215,7 +245,12 @@ export default class Hero extends Entity{
     reset(){
         this.#GRAVITY_FORCE = 0.2;
         this.#isDying = false;
+        this.#movement.x = 0;
+        this.#velocityX = 0;
+        this.#velocityY = 0;
+        this.#state = States.Stay;
         this._view.reset();
         this.resuraction();
+        this.setInvulnerable(3);
     }
 }

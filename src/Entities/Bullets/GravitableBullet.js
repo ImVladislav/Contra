@@ -12,8 +12,8 @@ export default class GravitableBullet extends Bullet{
     #velocityY = 0;
     #GRAVITY_FORCE = 0.2;
 
-    constructor(view) {
-        super(view);
+    constructor(view, angle = 0) {
+        super(view, angle);
 
         this.gravitable = true;
         this.isForbiddenHorizontalCollision = true;
@@ -45,10 +45,9 @@ export default class GravitableBullet extends Bullet{
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
-        this.x += this.speed;
-
+        this.x += this.speed * Math.cos(this.angle);
         this.#velocityY += this.#GRAVITY_FORCE;
-        this.y += this.#velocityY;
+        this.y += this.speed * Math.sin(this.angle) + this.#velocityY;
     }
 
     stay(platformY) {

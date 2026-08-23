@@ -68,11 +68,11 @@ export default class BulletFactory{
 
         this.#worldContainer.addChild(view);
 
-        const bullet = new GravitableBullet(view);
+        const bullet = new Bullet(view, bulletContext.angle);
         bullet.x = bulletContext.x;
         bullet.y = bulletContext.y;
         bullet.type = bulletContext.type;
-        bullet.speed = Math.random() * -6 -2;
+        bullet.speed = 7;
 
         this.#entities.push(bullet);
     }

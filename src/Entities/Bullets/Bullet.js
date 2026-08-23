@@ -14,6 +14,10 @@ export default class Bullet extends Entity{
         this.#angle = angle * Math.PI / 180;
     }
 
+    get angle(){
+        return this.#angle;
+    }
+
     update(){
         this.x += this.speed * Math.cos(this.#angle);
         this.y += this.speed * Math.sin(this.#angle);

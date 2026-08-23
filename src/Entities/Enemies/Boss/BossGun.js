@@ -5,6 +5,7 @@ export default class BossGun extends Entity{
     #target;
     #bulletFactory;
     #timeCounter = 0;
+    #reloadDelay = 180;
     #health = 5;
 
     type = "enemy";
@@ -48,14 +49,18 @@ export default class BossGun extends Entity{
     #fire(){
         this.#timeCounter++;
 
-        if(this.#timeCounter < 50 && Math.random() > 0.01){
+        if (this.#timeCounter < this.#reloadDelay) {
             return;
         }
+
+        const dx = this.#target.x - this.x;
+        const dy = this.#target.y - this.y;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
 
         const bulletContext = {};
         bulletContext.x = this.x;
         bulletContext.y = this.y;
-        bulletContext.angle = 180;
+        bulletContext.angle = angle;
         bulletContext.type = "enemyBullet";
 
         this.#bulletFactory.createBossBullet(bulletContext);

@@ -83,9 +83,14 @@ export default class HeroView extends Container {
     }
 
     reset(){
+        this.alpha = 1;
         this.#rootNode.visible = true;
         this.#collisionBox.width = this.#bounds.width;
         this.#collisionBox.height = this.#bounds.height;
+    }
+
+    setBlinking(isBlinking) {
+        this.alpha = isBlinking ? 0.35 : 1;
     }
 
     showAndGetDeadAnimation(){

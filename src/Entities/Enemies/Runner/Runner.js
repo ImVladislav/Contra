@@ -68,6 +68,22 @@ export default class Runner extends Entity{
         return this.#prevPoint;
     }
 
+    #canSeeTarget() {
+        if (this.#target.isDead) {
+            return false;
+        }
+
+        const targetInWater = this.#target.y > 650;
+        if (targetInWater) {
+            return false;
+        }
+
+        const horizontalDistance = Math.abs(this.x - this.#target.x);
+        const verticalDistance = this.#target.y - this.y;
+
+        return horizontalDistance < 420 && verticalDistance < 110 && verticalDistance > -90;
+    }
+
     update() {
 
         if(!this.isActive){
@@ -80,9 +96,24 @@ export default class Runner extends Entity{
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
         const targetInWater = this.#target.y > 650;
+        const canSeeTarget = this.#canSeeTarget();
+        const heroIsShooting = this.#target.isMoving && Math.abs(this.#target.x - this.x) < 280 && this.#target.x > this.x - 30 && this.#target.x < this.x + 30;
 
         if (this.#target.isDead || targetInWater) {
             this.#movement.x = -1;
+        }
+        else if (heroIsShooting && this.#state == States.Stay && this.#jumpTimer > 30) {
+            this.jump();
+            this.#jumpTimer = 0;
+            this.#movement.x = this.x > this.#target.x ? 1 : -1;
+        }
+        else if (!this.#target.isMoving) {
+            if (this.#movement.x == 0) {
+                this.#movement.x = -1;
+            }
+        }
+        else if (!canSeeTarget) {
+            this.#movement.x = this.#movement.x || -1;
         }
         else if (this.x > this.#target.x + 48) {
             this.#movement.x = -1;
@@ -98,7 +129,8 @@ export default class Runner extends Entity{
         this.x += this.#velocityX;
 
         this.#jumpTimer++;
-        if (!targetInWater && this.#state == States.Stay && this.#jumpTimer > 90 && Math.random() < this.jumpBehaviorKoef) {
+        const shouldJumpAtHero = canSeeTarget && !targetInWater && this.#target.isMoving && !heroIsShooting;
+        if (shouldJumpAtHero && this.#state == States.Stay && this.#jumpTimer > 90 && Math.random() < this.jumpBehaviorKoef) {
             this.jump();
             this.#jumpTimer = 0;
         }
@@ -108,7 +140,7 @@ export default class Runner extends Entity{
                 if(Math.random() > this.jumpBehaviorKoef){
                     this._view.showFall();
                 }
-                else if (!targetInWater){
+                else if (shouldJumpAtHero){
                     this.jump();
                 }
             }
