@@ -41,6 +41,24 @@ export default class BossView extends Container{
         return this.collisionBox;
     }
 
+    showHitReaction(x, y){
+        this.#view.tint = 0xff8888;
+        window.setTimeout(() => {
+            this.#view.tint = 0xffffff;
+        }, 80);
+
+        const spark = new AnimatedSprite(this.#assets.getAnimationTextures("explosion"));
+        spark.animationSpeed = 1/4;
+        spark.scale.x = 0.5;
+        spark.scale.y = 0.5;
+        spark.loop = false;
+        spark.play();
+        spark.x = x - spark.width/2;
+        spark.y = y - spark.height/2;
+        this.addChild(spark);
+        spark.onComplete = () => spark.removeFromParent();
+    }
+
     showAndGetDeadAnimation(){
         this.#view.visible = false;
         this.#collisionBox.width = 0;

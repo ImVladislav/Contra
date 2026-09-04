@@ -5,8 +5,8 @@ export default class BossGun extends Entity{
     #target;
     #bulletFactory;
     #timeCounter = 0;
-    #reloadDelay = 180;
-    #health = 5;
+    #reloadDelay = 80;
+    #health = 8;
 
     type = "enemy";
     
@@ -34,8 +34,9 @@ export default class BossGun extends Entity{
         this.#fire();
     }
 
-    damage(){
+    damage(hitX, hitY){
         this.#health--;
+        this._view.showHitReaction(hitX - this.x, hitY - this.y);
 
         if (this.#health < 1){
             this.#timeCounter = 0;

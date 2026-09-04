@@ -30,6 +30,8 @@ export default class HeroView extends Container {
         y:0,
     }
 
+    #swimAnimTime = 0;
+
     #rootNode;
     #assets;
 
@@ -56,6 +58,8 @@ export default class HeroView extends Container {
         this.#stm.states.lay = this.#getLayImage();
         this.#stm.states.jump = this.#getJumpImage();
         this.#stm.states.fall = this.#getFallImage();
+        this.#stm.states.swim = this.#getSwimImage();
+        this.#stm.states.dive = this.#getDiveImage();
 
         for (let key in this.#stm.states) {
             this.#rootNode.addChild(this.#stm.states[key])
@@ -87,6 +91,13 @@ export default class HeroView extends Container {
         this.#rootNode.visible = true;
         this.#collisionBox.width = this.#bounds.width;
         this.#collisionBox.height = this.#bounds.height;
+    }
+
+    update(){
+        if (this.#stm.currentState == "swim" || this.#stm.currentState == "dive") {
+            this.#swimAnimTime += 0.12;
+            this.#stm.states[this.#stm.currentState].y = Math.sin(this.#swimAnimTime) * 3;
+        }
     }
 
     setBlinking(isBlinking) {
@@ -195,6 +206,26 @@ export default class HeroView extends Container {
         this.#hitBox.height = 90;
         this.#hitBox.shiftX = 0;
         this.#hitBox.shiftY = 0;
+    }
+
+    showSwim() {
+        this.#toState("swim");
+        this.#setBulletPointShift(55, 65);
+
+        this.#hitBox.width = 40;
+        this.#hitBox.height = 30;
+        this.#hitBox.shiftX = -5;
+        this.#hitBox.shiftY = 55;
+    }
+
+    showDive() {
+        this.#toState("dive");
+        this.#setBulletPointShift(35, 75);
+
+        this.#hitBox.width = 34;
+        this.#hitBox.height = 26;
+        this.#hitBox.shiftX = -3;
+        this.#hitBox.shiftY = 58;
     }
 
     flip(direction) {
@@ -315,5 +346,58 @@ export default class HeroView extends Container {
     #getFallImage() {
         const view = new Sprite(this.#assets.getTexture("run0003"));
         return view;
+    }
+
+    // Placeholder graphics until real swim/dive sprites exist.
+    // Water tiles render on the foreground layer (on top of the hero), which
+    // covers roughly the bottom third of the hero's bounding box - keep these
+    // shapes above that line (local y below ~60) or they're invisible.
+    #getSwimImage() {
+        const container = new Container();
+
+        const wake = new Graphics();
+        wake.lineStyle(2, 0x8fd3f4, 0.6);
+        wake.moveTo(-6, 46);
+        wake.lineTo(34, 46);
+
+        const body = new Graphics();
+        body.beginFill(0x2f6690);
+        body.drawRoundedRect(-4, 30, 34, 16, 8);
+        body.endFill();
+
+        const head = new Graphics();
+        head.beginFill(0xe0a679);
+        head.drawCircle(26, 28, 8);
+        head.endFill();
+
+        container.addChild(wake, body, head);
+        return container;
+    }
+
+    #getDiveImage() {
+        const container = new Container();
+
+        // Shield ring makes the invulnerable dive state readable at a glance.
+        const shield = new Graphics();
+        shield.lineStyle(2, 0xbfe6ff, 0.8);
+        shield.drawCircle(14, 40, 24);
+
+        const body = new Graphics();
+        body.beginFill(0x1c4e73, 0.9);
+        body.drawEllipse(14, 40, 20, 12);
+        body.endFill();
+
+        const bubbleA = new Graphics();
+        bubbleA.beginFill(0xbfe6ff, 0.75);
+        bubbleA.drawCircle(20, 18, 3);
+        bubbleA.endFill();
+
+        const bubbleB = new Graphics();
+        bubbleB.beginFill(0xbfe6ff, 0.5);
+        bubbleB.drawCircle(12, 6, 2);
+        bubbleB.endFill();
+
+        container.addChild(shield, body, bubbleA, bubbleB);
+        return container;
     }
 }

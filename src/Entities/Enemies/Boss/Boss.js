@@ -2,7 +2,8 @@ import Entity from "../../Entity.js";
 
 export default class Boss extends Entity{
 
-    #health = 5;
+    #health = 12;
+    #hitCooldown = 0;
 
     type = "enemy";
     isBoss = true;
@@ -14,11 +15,19 @@ export default class Boss extends Entity{
     }
 
     update(){
-
+        if(this.#hitCooldown > 0){
+            this.#hitCooldown--;
+        }
     }
 
-    damage(){
+    damage(hitX, hitY){
+        if(this.#hitCooldown > 0){
+            return;
+        }
+        this.#hitCooldown = 10;
+
         this.#health--;
+        this._view.showHitReaction(hitX - this.x, hitY - this.y);
 
         if(this.#health < 1){
             this.isActive = false;

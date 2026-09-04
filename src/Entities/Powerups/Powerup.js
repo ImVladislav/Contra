@@ -42,7 +42,7 @@ export default class Powerup extends Entity{
 
     update(){
         if(!this.isActive){
-            if(this.x - this.#target.x < -512 - this.collisionBox.width){
+            if(this.x - this.#target.x < 512 + this.collisionBox.width){
                 this.isActive = true;
                 this._view.visible = true;
             }

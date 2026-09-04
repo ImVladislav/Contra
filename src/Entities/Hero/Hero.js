@@ -38,6 +38,8 @@ export default class Hero extends Entity{
     #isDying = false;
     #invulnerabilityFrames = 0;
     #godMode = false;
+    #isInWater = false;
+    #isDiving = false;
 
     #heroWeaponUnit;
 
@@ -73,6 +75,9 @@ export default class Hero extends Entity{
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
+        this.#isInWater = false;
+        this._view.update();
+
         if (this.#invulnerabilityFrames > 0) {
             this.#invulnerabilityFrames--;
             this._view.setBlinking(this.#invulnerabilityFrames % 2 == 0);
@@ -81,7 +86,7 @@ export default class Hero extends Entity{
             }
         }
 
-        this.#velocityX = this.#movement.x * this.#SPEED;
+        this.#velocityX = this.#isDiving ? 0 : this.#movement.x * this.#SPEED;
         this.x += this.#velocityX;
 
         if (this.#velocityY > 0) {
@@ -97,7 +102,15 @@ export default class Hero extends Entity{
     }
 
     get isInvulnerable() {
-        return this.#godMode || this.#invulnerabilityFrames > 0;
+        return this.#godMode || this.#invulnerabilityFrames > 0 || this.#isDiving;
+    }
+
+    get isInWater() {
+        return this.#isInWater;
+    }
+
+    get isDiving() {
+        return this.#isDiving;
     }
 
     setInvulnerable(seconds) {
@@ -131,9 +144,15 @@ export default class Hero extends Entity{
         }
     }
 
-    stay(platformY) {
+    stay(platformY, isWater = false) {
 
-        if (this.#state == States.Jump || this.#state == States.FlyDown) {
+        const enteredOrLeftWater = isWater != this.#isInWater;
+        this.#isInWater = isWater;
+        if (!isWater) {
+            this.#isDiving = false;
+        }
+
+        if (this.#state == States.Jump || this.#state == States.FlyDown || enteredOrLeftWater) {
             const fakeButtonContext = {};
             fakeButtonContext.arrowLeft = this.#movement.x == -1;
             fakeButtonContext.arrowRight = this.#movement.x == 1;
@@ -213,6 +232,18 @@ export default class Hero extends Entity{
             return;
         }
 
+        if (this.#isInWater) {
+            this.#isDiving = !!buttonContext.arrowDown;
+
+            if (this.#isDiving) {
+                this._view.showDive();
+            }
+            else {
+                this._view.showSwim();
+            }
+            return;
+        }
+
         if (buttonContext.arrowLeft || buttonContext.arrowRight) {
             if (buttonContext.arrowUp) {
                 this._view.showRunUp();
@@ -249,6 +280,8 @@ export default class Hero extends Entity{
         this.#velocityX = 0;
         this.#velocityY = 0;
         this.#state = States.Stay;
+        this.#isInWater = false;
+        this.#isDiving = false;
         this._view.reset();
         this.resuraction();
         this.setInvulnerable(3);

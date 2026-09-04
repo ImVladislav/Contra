@@ -32,6 +32,9 @@ export default class Game {
     #orientationReturnMode = "main";
     #heroIntroOverlay;
     #isGodModeEnabled = false;
+    #lives = 3;
+    #livesText;
+    #statusText;
 
     keyboardProcessor;
 
@@ -65,7 +68,9 @@ export default class Game {
         }
 
         this.#camera.update();
-        this.#weapon.update(this.#hero.bulletContext);
+        if (!this.#hero.isDiving) {
+            this.#weapon.update(this.#hero.bulletContext);
+        }
 
         this.#checkGameStatus();
     }
@@ -132,11 +137,38 @@ export default class Game {
         });
         this.#weapon = new Weapon(this.#bulletFactory);
         this.#weapon.setWeapon(1);
+
+        this.#statusText?.destroy({ children: true });
+        this.#statusText = undefined;
+
+        this.#lives = 3;
+        this.#livesText?.destroy();
+        this.#livesText = new Text("", new TextStyle({
+            fontFamily: "Impact",
+            fontSize: 24,
+            fill: 0xffffff,
+            stroke: 0x000000,
+            strokeThickness: 4,
+        }));
+        this.#livesText.x = 16;
+        this.#livesText.y = 16;
+        this.#pixiApp.stage.addChild(this.#livesText);
+        this.#updateLivesText();
+    }
+
+    #updateLivesText() {
+        if (this.#livesText) {
+            this.#livesText.text = `Життя: ${this.#lives}`;
+        }
     }
 
     #returnToMainMenu() {
         this.#worldContainer?.destroy({ children: true });
         this.#worldContainer = undefined;
+        this.#livesText?.destroy();
+        this.#livesText = undefined;
+        this.#statusText?.destroy({ children: true });
+        this.#statusText = undefined;
         this.#hero = undefined;
         this.#camera = undefined;
         this.#weapon = undefined;
@@ -150,8 +182,27 @@ export default class Game {
         this.#menuMode = "main";
         this.#selectedMenuOption = 0;
         this.#menuContainer?.destroy({ children: true });
-        this.#menuContainer = this.#createMenu("ВИБІР ПЕРСОНАЖА", this.#characters, "Стрілки - вибір, Enter - почати | Space - стрибок, F - вогонь, P - пауза");
+        this.#menuContainer = this.#createCharacterSelectMenu();
         this.#createGodModeCheckbox();
+    }
+
+    #getHeroProfiles() {
+        return {
+            "Крам": {
+                portrait: "К",
+                text: "Слухай, тут немає часу на розмови. Ставимося до роботи як до бою.",
+                accent: 0xff6b4a,
+                skin: 0xe0a679,
+                hair: 0x3b2a1a,
+            },
+            "ДжастВ": {
+                portrait: "Д",
+                text: "Відмінна команда, рота. Поки я в живих, ми йдемо далі.",
+                accent: 0x4ab0ff,
+                skin: 0xc98a5b,
+                hair: 0x1a1a1a,
+            },
+        };
     }
 
     #createGodModeCheckbox() {
@@ -192,17 +243,7 @@ export default class Game {
     }
 
     #showHeroIntro() {
-        const heroProfiles = {
-            "Крам": {
-                portrait: "К",
-                text: "Слухай, тут немає часу на розмови. Ставимося до роботи як до бою.",
-            },
-            "ДжастВ": {
-                portrait: "Д",
-                text: "Відмінна команда, рота. Поки я в живих, ми йдемо далі.",
-            },
-        };
-
+        const heroProfiles = this.#getHeroProfiles();
         const profile = heroProfiles[this.#characters[this.#selectedMenuOption]] ?? heroProfiles["Крам"];
         const container = this.#pixiApp.view.parentElement ?? document.body;
         const intro = document.createElement("div");
@@ -276,6 +317,135 @@ export default class Game {
         return container;
     }
 
+    #createCharacterSelectMenu() {
+        const container = new Container();
+        const background = new Graphics();
+        background.beginFill(0x07131f, 0.92).drawRect(0, 0, this.#pixiApp.screen.width, this.#pixiApp.screen.height).endFill();
+        container.addChild(background);
+
+        const titleStyle = new TextStyle({ fontFamily: "Impact", fontSize: 52, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6 });
+        const titleText = new Text("ВИБІР ПЕРСОНАЖА", titleStyle);
+        titleText.anchor.set(0.5);
+        titleText.x = this.#pixiApp.screen.width / 2;
+        titleText.y = 130;
+        container.addChild(titleText);
+
+        const cardWidth = 220;
+        const cardHeight = 300;
+        const gap = 50;
+        const totalWidth = this.#characters.length * cardWidth + (this.#characters.length - 1) * gap;
+        const startX = this.#pixiApp.screen.width / 2 - totalWidth / 2;
+        const cardY = 200;
+
+        const heroProfiles = this.#getHeroProfiles();
+
+        this.#characters.forEach((name, index) => {
+            const profile = heroProfiles[name] ?? heroProfiles["Крам"];
+            const card = this.#buildCharacterCard(name, profile, cardWidth, cardHeight);
+            card.x = startX + index * (cardWidth + gap);
+            card.y = cardY;
+            card.name = `menu-option-${index}`;
+            container.addChild(card);
+        });
+
+        const hintText = new Text(
+            "Стрілки - вибір, Enter - почати | Space - стрибок, F - вогонь, P - пауза",
+            new TextStyle({ fontFamily: "Arial", fontSize: 18, fill: 0xa9c6d9 })
+        );
+        hintText.anchor.set(0.5);
+        hintText.x = this.#pixiApp.screen.width / 2;
+        hintText.y = 560;
+        container.addChild(hintText);
+
+        this.#updateCharacterCardSelection(container);
+        this.#pixiApp.stage.addChild(container);
+        return container;
+    }
+
+    #buildCharacterCard(name, profile, width, height) {
+        const card = new Container();
+        card.cardWidth = width;
+        card.cardHeight = height;
+
+        const background = new Graphics();
+        card.addChild(background);
+        card.background = background;
+
+        const portraitSize = width - 40;
+        const portrait = this.#buildPortrait(profile, portraitSize);
+        portrait.x = 20;
+        portrait.y = 20;
+        card.addChild(portrait);
+
+        const nameText = new Text(name, new TextStyle({ fontFamily: "Impact", fontSize: 30, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4 }));
+        nameText.anchor.set(0.5, 0);
+        nameText.x = width / 2;
+        nameText.y = portraitSize + 30;
+        card.addChild(nameText);
+        card.nameText = nameText;
+
+        return card;
+    }
+
+    // Procedural placeholder portrait (no real character art yet).
+    #buildPortrait(profile, size) {
+        const g = new Graphics();
+        const cx = size / 2;
+
+        g.beginFill(0x1c2f40);
+        g.drawRoundedRect(0, 0, size, size, 10);
+        g.endFill();
+
+        g.beginFill(profile.accent);
+        g.moveTo(cx - size * 0.38, size * 0.98);
+        g.lineTo(cx - size * 0.24, size * 0.62);
+        g.lineTo(cx + size * 0.24, size * 0.62);
+        g.lineTo(cx + size * 0.38, size * 0.98);
+        g.lineTo(cx - size * 0.38, size * 0.98);
+        g.closePath();
+        g.endFill();
+
+        g.beginFill(profile.skin);
+        g.drawRect(cx - size * 0.08, size * 0.55, size * 0.16, size * 0.12);
+        g.endFill();
+
+        g.beginFill(profile.skin);
+        g.drawCircle(cx, size * 0.42, size * 0.2);
+        g.endFill();
+
+        g.beginFill(profile.hair);
+        g.drawEllipse(cx, size * 0.28, size * 0.21, size * 0.12);
+        g.endFill();
+
+        g.beginFill(profile.accent);
+        g.drawRect(cx - size * 0.21, size * 0.30, size * 0.42, size * 0.05);
+        g.endFill();
+
+        g.beginFill(0x1a1a1a);
+        g.drawRect(cx - size * 0.10, size * 0.40, size * 0.05, size * 0.03);
+        g.drawRect(cx + size * 0.05, size * 0.40, size * 0.05, size * 0.03);
+        g.endFill();
+
+        return g;
+    }
+
+    #updateCharacterCardSelection(container) {
+        this.#characters.forEach((_, index) => {
+            const card = container.getChildByName(`menu-option-${index}`);
+            const isSelected = index == this.#selectedMenuOption;
+            const borderColor = isSelected ? 0xffd166 : 0x2d5d75;
+            const fillColor = isSelected ? 0x14283a : 0x0b1925;
+
+            card.background.clear();
+            card.background.lineStyle(isSelected ? 4 : 2, borderColor, 1);
+            card.background.beginFill(fillColor, 0.92);
+            card.background.drawRoundedRect(0, 0, card.cardWidth, card.cardHeight, 14);
+            card.background.endFill();
+
+            card.nameText.style.fill = isSelected ? 0xffd166 : 0xffffff;
+        });
+    }
+
     #updateMenuSelection(container, optionCount) {
         for (let index = 0; index < optionCount; index++) {
             const option = container.getChildByName(`menu-option-${index}`);
@@ -288,11 +458,19 @@ export default class Game {
             return;
         }
 
-        if (keyName == "ArrowUp" || keyName == "ArrowDown") {
+        const isNextKey = keyName == "ArrowDown" || keyName == "ArrowRight";
+        const isPrevKey = keyName == "ArrowUp" || keyName == "ArrowLeft";
+        if (isNextKey || isPrevKey) {
             const optionCount = this.#menuMode == "main" ? this.#characters.length : 2;
-            const direction = keyName == "ArrowDown" ? 1 : -1;
+            const direction = isNextKey ? 1 : -1;
             this.#selectedMenuOption = (this.#selectedMenuOption + direction + optionCount) % optionCount;
-            this.#updateMenuSelection(this.#menuContainer, optionCount);
+
+            if (this.#menuMode == "main") {
+                this.#updateCharacterCardSelection(this.#menuContainer);
+            }
+            else {
+                this.#updateMenuSelection(this.#menuContainer, optionCount);
+            }
             return;
         }
 
@@ -323,14 +501,27 @@ export default class Game {
         if(isBossDead){
             const enemies = this.#entities.filter(e => e.type == "enemy" && !e.isBoss);
             enemies.forEach(e => e.dead());
+
+            this.keyboardProcessor.releaseAll();
+            this.#weapon.stopFire();
+
             this.#isEndGame = true;
             this.#showEndGame();
         }
 
         const isHeroDead = !this.#entities.some(e => e.type == "hero") && this.#hero.isDead;
         if(isHeroDead){
+            this.#lives--;
+            this.#updateLivesText();
+
             this.keyboardProcessor.releaseAll();
             this.#weapon.stopFire();
+
+            if(this.#lives <= 0){
+                this.#isEndGame = true;
+                this.#showGameOver();
+                return;
+            }
 
             this.#entities.push(this.#hero);
             this.#worldContainer.game.addChild(this.#hero._view);
@@ -339,6 +530,29 @@ export default class Game {
             this.#hero.y = 100;
             this.#weapon.setWeapon(1);
         }
+    }
+
+    #showGameOver(){
+        const style = new TextStyle({
+            fontFamily: "Impact",
+            fontSize: 50,
+            fill: [0xffffff, 0xdd0000],
+            stroke: 0x000000,
+            strokeThickness: 5,
+            letterSpacing: 30,
+        })
+
+        const text = new Text("GAME OVER", style);
+        text.x = this.#pixiApp.screen.width/2 - text.width/2;
+        text.y = this.#pixiApp.screen.height/2 - text.height/2;
+
+        this.#statusText?.destroy({ children: true });
+        this.#statusText = text;
+        this.#pixiApp.stage.addChild(text);
+
+        window.setTimeout(() => {
+            this.#returnToMainMenu();
+        }, 3000);
     }
 
     #showEndGame(){
@@ -355,7 +569,24 @@ export default class Game {
         text.x = this.#pixiApp.screen.width/2 - text.width/2;
         text.y = this.#pixiApp.screen.height/2 - text.height/2;
 
-        this.#pixiApp.stage.addChild(text);
+        const subtitle = new Text("Вітаємо! Місію виконано.", new TextStyle({
+            fontFamily: "Arial",
+            fontSize: 22,
+            fill: 0xa9c6d9,
+        }));
+        subtitle.x = this.#pixiApp.screen.width/2 - subtitle.width/2;
+        subtitle.y = text.y + text.height + 20;
+
+        const container = new Container();
+        container.addChild(text, subtitle);
+
+        this.#statusText?.destroy({ children: true });
+        this.#statusText = container;
+        this.#pixiApp.stage.addChild(container);
+
+        window.setTimeout(() => {
+            this.#returnToMainMenu();
+        }, 4000);
     }
 
     #checkDamage(entity){
@@ -368,7 +599,7 @@ export default class Game {
         
         for (let damager of damagers){
             if(Physics.isCheckAABB(damager.hitBox, entity.hitBox)){
-                entity.damage();
+                entity.damage(damager.x, damager.y);
                 if(damager.type != "enemy"){
                     damager.dead();
                 }
@@ -411,7 +642,7 @@ export default class Game {
 
         if (collisionResult.vertical == true) {
             character.y = prevPoint.y;
-            character.stay(platform.y);
+            character.stay(platform.y, platform.isWater);
         }
         if (collisionResult.horizontal == true && platform.type == "box" && !character.isForbiddenHorizontalCollision) {
             if (platform.isStep) {
@@ -429,7 +660,7 @@ export default class Game {
             if (this.#menuMode != "playing") {
                 return;
             }
-            if(!this.#hero.isDead && !this.#hero.isFall){
+            if(!this.#hero.isDead && !this.#hero.isFall && !this.#hero.isDiving){
                 const bullets = this.#entities.filter(bullet => bullet.type == this.#hero.bulletContext.type);
                 if(bullets.length > 10){
                     return;
@@ -455,7 +686,8 @@ export default class Game {
                 return;
             }
             if (this.keyboardProcessor.isButtonPressed("ArrowDown")
-                && !(this.keyboardProcessor.isButtonPressed("ArrowLeft") || this.keyboardProcessor.isButtonPressed("ArrowRight"))) {
+                && !(this.keyboardProcessor.isButtonPressed("ArrowLeft") || this.keyboardProcessor.isButtonPressed("ArrowRight"))
+                && !this.#hero.isInWater) {
                 this.#hero.throwDown();
             }
             else {
@@ -467,6 +699,7 @@ export default class Game {
         const arrowLeft = this.keyboardProcessor.getButton("ArrowLeft");
         arrowLeft.executeDown = function () {
             if (this.#menuMode != "playing") {
+                this.#handleMenuKey("ArrowLeft");
                 return;
             }
             this.#hero.startLeftMove();
@@ -483,6 +716,7 @@ export default class Game {
         const arrowRight = this.keyboardProcessor.getButton("ArrowRight");
         arrowRight.executeDown = function () {
             if (this.#menuMode != "playing") {
+                this.#handleMenuKey("ArrowRight");
                 return;
             }
             this.#hero.startRightMove();
