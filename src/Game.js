@@ -1,4 +1,4 @@
-import { Container, Graphics, Text, TextStyle } from "../lib/pixi.mjs";
+import { Container, Graphics, Sprite, Text, TextStyle } from "../lib/pixi.mjs";
 import Camera from "./Camera.js";
 import BulletFactory from "./Entities/Bullets/BulletFactory.js";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
@@ -114,6 +114,7 @@ export default class Game {
         const heroFactory = new HeroFactory(this.#worldContainer.game, this.#assets);
         this.#hero = heroFactory.create(160, 100);
         this.#entities.push(this.#hero);
+        this.#hero._view.setTint(this.#getSelectedProfile().tint);
         if (this.#isGodModeEnabled) {
             this.#hero.setGodMode(true);
         }
@@ -142,30 +143,35 @@ export default class Game {
         this.#statusText = undefined;
 
         this.#lives = 3;
-        this.#livesText?.destroy();
-        this.#livesText = new Text("", new TextStyle({
-            fontFamily: "Impact",
-            fontSize: 24,
-            fill: 0xffffff,
-            stroke: 0x000000,
-            strokeThickness: 4,
-        }));
+        this.#livesText?.destroy({ children: true });
+        this.#livesText = new Container();
         this.#livesText.x = 16;
-        this.#livesText.y = 16;
+        this.#livesText.y = 12;
         this.#pixiApp.stage.addChild(this.#livesText);
         this.#updateLivesText();
     }
 
+    // Remaining lives shown as a row of small hero icons (classic arcade HUD).
     #updateLivesText() {
-        if (this.#livesText) {
-            this.#livesText.text = `Життя: ${this.#lives}`;
+        if (!this.#livesText) {
+            return;
+        }
+        this.#livesText.removeChildren().forEach((child) => child.destroy());
+
+        const tint = this.#getSelectedProfile().tint;
+        for (let i = 0; i < this.#lives; i++) {
+            const icon = new Sprite(this.#assets.getTexture("stay0000"));
+            icon.scale.set(0.4);
+            icon.tint = tint;
+            icon.x = i * 32;
+            this.#livesText.addChild(icon);
         }
     }
 
     #returnToMainMenu() {
         this.#worldContainer?.destroy({ children: true });
         this.#worldContainer = undefined;
-        this.#livesText?.destroy();
+        this.#livesText?.destroy({ children: true });
         this.#livesText = undefined;
         this.#statusText?.destroy({ children: true });
         this.#statusText = undefined;
@@ -186,21 +192,24 @@ export default class Game {
         this.#createGodModeCheckbox();
     }
 
+    #getSelectedProfile() {
+        const heroProfiles = this.#getHeroProfiles();
+        return heroProfiles[this.#characters[this.#selectedMenuOption]] ?? heroProfiles["Крам"];
+    }
+
     #getHeroProfiles() {
         return {
             "Крам": {
                 portrait: "К",
                 text: "Слухай, тут немає часу на розмови. Ставимося до роботи як до бою.",
                 accent: 0xff6b4a,
-                skin: 0xe0a679,
-                hair: 0x3b2a1a,
+                tint: 0xffffff,
             },
             "ДжастВ": {
                 portrait: "Д",
                 text: "Відмінна команда, рота. Поки я в живих, ми йдемо далі.",
                 accent: 0x4ab0ff,
-                skin: 0xc98a5b,
-                hair: 0x1a1a1a,
+                tint: 0x9fd0ff,
             },
         };
     }
@@ -250,7 +259,7 @@ export default class Game {
         intro.className = "hero-intro";
         intro.innerHTML = `
             <div class="hero-intro__card">
-                <div class="hero-intro__portrait">${profile.portrait}</div>
+                <div class="hero-intro__portrait"><img src="assets/sprites/stay0000.png" alt="" style="height:64px;image-rendering:pixelated;filter:${profile.tint == 0xffffff ? "none" : "hue-rotate(200deg) saturate(0.9)"}"></div>
                 <div class="hero-intro__body">
                     <div class="hero-intro__name">${this.#characters[this.#selectedMenuOption]}</div>
                     <div class="hero-intro__text">${profile.text}</div>
@@ -387,46 +396,40 @@ export default class Game {
         return card;
     }
 
-    // Procedural placeholder portrait (no real character art yet).
+    // Portrait = the actual in-game hero sprite, scaled up, pixel-crisp.
     #buildPortrait(profile, size) {
-        const g = new Graphics();
-        const cx = size / 2;
+        const container = new Container();
 
-        g.beginFill(0x1c2f40);
-        g.drawRoundedRect(0, 0, size, size, 10);
-        g.endFill();
+        const bg = new Graphics();
+        bg.beginFill(0x1c2f40);
+        bg.drawRoundedRect(0, 0, size, size, 10);
+        bg.endFill();
+        bg.beginFill(profile.accent, 0.18);
+        bg.drawCircle(size / 2, size / 2, size * 0.42);
+        bg.endFill();
+        container.addChild(bg);
 
-        g.beginFill(profile.accent);
-        g.moveTo(cx - size * 0.38, size * 0.98);
-        g.lineTo(cx - size * 0.24, size * 0.62);
-        g.lineTo(cx + size * 0.24, size * 0.62);
-        g.lineTo(cx + size * 0.38, size * 0.98);
-        g.lineTo(cx - size * 0.38, size * 0.98);
-        g.closePath();
-        g.endFill();
+        const ground = new Sprite(this.#assets.getTexture("platform0000"));
+        ground.width = size;
+        ground.height = size * 0.35;
+        ground.y = size - ground.height + 6;
+        const groundMask = new Graphics();
+        groundMask.beginFill(0xffffff);
+        groundMask.drawRoundedRect(0, 0, size, size, 10);
+        groundMask.endFill();
+        ground.mask = groundMask;
+        container.addChild(ground, groundMask);
 
-        g.beginFill(profile.skin);
-        g.drawRect(cx - size * 0.08, size * 0.55, size * 0.16, size * 0.12);
-        g.endFill();
+        const hero = new Sprite(this.#assets.getTexture("stay0000"));
+        const scale = (size * 0.78) / hero.texture.height;
+        hero.scale.set(scale);
+        hero.tint = profile.tint;
+        hero.anchor.set(0.5, 1);
+        hero.x = size / 2;
+        hero.y = size - size * 0.08;
+        container.addChild(hero);
 
-        g.beginFill(profile.skin);
-        g.drawCircle(cx, size * 0.42, size * 0.2);
-        g.endFill();
-
-        g.beginFill(profile.hair);
-        g.drawEllipse(cx, size * 0.28, size * 0.21, size * 0.12);
-        g.endFill();
-
-        g.beginFill(profile.accent);
-        g.drawRect(cx - size * 0.21, size * 0.30, size * 0.42, size * 0.05);
-        g.endFill();
-
-        g.beginFill(0x1a1a1a);
-        g.drawRect(cx - size * 0.10, size * 0.40, size * 0.05, size * 0.03);
-        g.drawRect(cx + size * 0.05, size * 0.40, size * 0.05, size * 0.03);
-        g.endFill();
-
-        return g;
+        return container;
     }
 
     #updateCharacterCardSelection(container) {

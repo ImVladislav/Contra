@@ -5,6 +5,9 @@ import AssetsFactory from "./AssetsFactory.js";
 const gameViewport = document.createElement("div");
 gameViewport.className = "game-viewport";
 
+// Retro look: no texture smoothing, pixels stay crisp when scaled.
+PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
+
 const pixiApp = new PIXI.Application({
     width: 1024,
     height: 768,

@@ -348,56 +348,54 @@ export default class HeroView extends Container {
         return view;
     }
 
-    // Placeholder graphics until real swim/dive sprites exist.
-    // Water tiles render on the foreground layer (on top of the hero), which
-    // covers roughly the bottom third of the hero's bounding box - keep these
-    // shapes above that line (local y below ~60) or they're invisible.
+    // Swim: the real hero sprite, sunk so only head and shoulders show
+    // above the water tiles (water renders on the foreground layer).
     #getSwimImage() {
         const container = new Container();
 
+        const body = new Sprite(this.#assets.getTexture("stay0000"));
+        body.y = 38;
+
         const wake = new Graphics();
-        wake.lineStyle(2, 0x8fd3f4, 0.6);
-        wake.moveTo(-6, 46);
-        wake.lineTo(34, 46);
+        wake.lineStyle(2, 0xbfe6ff, 0.55);
+        wake.moveTo(-14, 58);
+        wake.lineTo(48, 58);
 
-        const body = new Graphics();
-        body.beginFill(0x2f6690);
-        body.drawRoundedRect(-4, 30, 34, 16, 8);
-        body.endFill();
-
-        const head = new Graphics();
-        head.beginFill(0xe0a679);
-        head.drawCircle(26, 28, 8);
-        head.endFill();
-
-        container.addChild(wake, body, head);
+        container.addChild(body, wake);
         return container;
     }
 
+    // Dive: hero is fully under water - only bubbles give away the position.
     #getDiveImage() {
         const container = new Container();
 
-        // Shield ring makes the invulnerable dive state readable at a glance.
-        const shield = new Graphics();
-        shield.lineStyle(2, 0xbfe6ff, 0.8);
-        shield.drawCircle(14, 40, 24);
-
-        const body = new Graphics();
-        body.beginFill(0x1c4e73, 0.9);
-        body.drawEllipse(14, 40, 20, 12);
-        body.endFill();
-
         const bubbleA = new Graphics();
         bubbleA.beginFill(0xbfe6ff, 0.75);
-        bubbleA.drawCircle(20, 18, 3);
+        bubbleA.drawCircle(20, 50, 3);
         bubbleA.endFill();
 
         const bubbleB = new Graphics();
         bubbleB.beginFill(0xbfe6ff, 0.5);
-        bubbleB.drawCircle(12, 6, 2);
+        bubbleB.drawCircle(10, 42, 2);
         bubbleB.endFill();
 
-        container.addChild(shield, body, bubbleA, bubbleB);
+        const bubbleC = new Graphics();
+        bubbleC.beginFill(0xbfe6ff, 0.6);
+        bubbleC.drawCircle(28, 40, 2);
+        bubbleC.endFill();
+
+        container.addChild(bubbleA, bubbleB, bubbleC);
         return container;
+    }
+
+    // Recolours every sprite of the hero (used for the second character).
+    setTint(color) {
+        const apply = (node) => {
+            if (node instanceof Sprite) {
+                node.tint = color;
+            }
+            node.children?.forEach(apply);
+        };
+        apply(this.#rootNode);
     }
 }

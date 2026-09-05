@@ -6,6 +6,8 @@ import BossView from "./Boss/BossView.js";
 import Boss from "./Boss/Boss.js";
 import BossGunView from "./Boss/BossGunView.js";
 import BossGun from "./Boss/BossGun.js";
+import SniperView from "./Sniper/SniperView.js";
+import Sniper from "./Sniper/Sniper.js";
 
 export default class EnemiesFactory{
     #worldContainer;
@@ -46,6 +48,22 @@ export default class EnemiesFactory{
         this.#entities.push(tourelle);
 
         return tourelle;
+    }
+
+    // Stationary rifleman standing on a platform whose top is at `platformY`.
+    // Recoloured hero sprite: red = regular, green = "veteran" (same stats,
+    // just visual variety) - swap in dedicated art later if you get some.
+    createSniper(x, platformY, tint = 0xff7b6b){
+        const view = new SniperView(this.#assets, tint);
+        this.#worldContainer.addChild(view);
+
+        const sniper = new Sniper(view, this.#target, this.#bulletFactory);
+        sniper.x = x;
+        sniper.y = platformY - 90;
+
+        this.#entities.push(sniper);
+
+        return sniper;
     }
 
     createBoss(x, y){

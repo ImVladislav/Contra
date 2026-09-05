@@ -100,9 +100,11 @@ export default class PlatformFactory{
         return platform;
     }
 
-    createJungle(x, y){
+    // depth = how many undergrowth tiles hang below the canopy
+    // (1 = thin canopy with sky beneath, 5 = solid jungle wall).
+    createJungle(x, y, depth = 5){
         const jungleTop = new Sprite(this.#assets.getTexture("jungletop0000"));
-        for(let i = 1; i <= 5; i++){
+        for(let i = 1; i <= depth; i++){
             const jungleBottom = this.#createJungleBottom(jungleTop);
             jungleBottom.y = jungleTop.height * i - 2 * i;
         }
