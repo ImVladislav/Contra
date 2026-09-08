@@ -44,7 +44,20 @@
     "stayup0000",
     "tourelle0000",
     "tourellegun0000",
-    "water0000"
+    "water0000",
+    "player_1_lives_medal",
+    "player_1_game_over",
+    "player_2_lives_medal",
+    "player_2_game_over",
+    "sprite_30",
+    "sprite_31",
+    "sprite_32",
+    "sprite_33",
+    "sprite_34",
+    "sprite_0e_p2",
+    "sprite_11_p2",
+    "sprite_14_p2",
+    "sprite_16_p2"
   ],
   "animations": {
     "jump": [

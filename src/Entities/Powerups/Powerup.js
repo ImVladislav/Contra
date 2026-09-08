@@ -6,8 +6,8 @@ export default class Powerup extends Entity{
     #flyY;
     #target;
 
-    #velocityX = 4;
-    #velocityY = 50;
+    #velocityX = 1.6;
+    #bobAmplitude = 50;
 
     type = "powerupBox";
 
@@ -49,8 +49,12 @@ export default class Powerup extends Entity{
             return;
         }
 
+        // Keeps flying and bobbing the whole time it is on screen - it used
+        // to move at 4px/frame, faster than the hero (3px/frame) could ever
+        // run, so it just flew away and was never actually catchable. This
+        // speed is slower than the hero so it can always be chased down.
         this.x += this.#velocityX;
-        this.y = this.#flyY + Math.sin(this.x * 0.02) * this.#velocityY;
+        this.y = this.#flyY + Math.sin(this.x * 0.02) * this.#bobAmplitude;
     }
 
     damage(){
@@ -59,10 +63,10 @@ export default class Powerup extends Entity{
             return;
         }
 
-        this.#powerupFactory.createSpreadGunPowerup(this.x, this.y);
+        this.#powerupFactory.createRandomWeaponPowerup(this.x, this.y);
         
         this.#velocityX = 0;
-        this.#velocityY = 0;
+        this.#bobAmplitude = 0;
         const deadAnimation = this._view.showAndGetDeadAnimation();
         deadAnimation.onComplete = () => {
             this.dead();

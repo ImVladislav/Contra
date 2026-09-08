@@ -35,6 +35,7 @@ export default class Game {
     #lives = 3;
     #livesText;
     #statusText;
+    #activeCharacterIndex = 0;
 
     keyboardProcessor;
 
@@ -57,7 +58,7 @@ export default class Game {
             const entity = this.#entities[i];
             entity.update();
 
-            if(entity.type == "hero" || entity.type == "enemy" || entity.type == "powerupBox" || entity.type == "spreadgunPowerup"){
+            if(entity.type == "hero" || entity.type == "enemy" || entity.type == "powerupBox" || entity.type == "spreadgunPowerup" || entity.type == "weaponPowerup"){
                 this.#checkDamage(entity);
                 this.#checkPlatforms(entity);
             }
@@ -128,6 +129,7 @@ export default class Game {
         const powerupFactory = new PowerupsFactory(this.#entities, this.#assets, this.#worldContainer.game, this.#hero);
         const sceneFactory = new SceneFactory(this.#platforms, this.#entities, platformFactory, enemyFactory, this.#hero, powerupFactory);
         sceneFactory.createScene();
+        powerupFactory.createWeaponPowerup(220, 50, 4, "sprite_31"); // DEBUG TEST - REMOVE
 
         this.#camera = new Camera({
             target: this.#hero,
@@ -142,6 +144,8 @@ export default class Game {
         this.#statusText?.destroy({ children: true });
         this.#statusText = undefined;
 
+        this.#activeCharacterIndex = this.#selectedMenuOption;
+
         this.#lives = 3;
         this.#livesText?.destroy({ children: true });
         this.#livesText = new Container();
@@ -151,19 +155,19 @@ export default class Game {
         this.#updateLivesText();
     }
 
-    // Remaining lives shown as a row of small hero icons (classic arcade HUD).
+    // Remaining lives shown with the authentic Contra medal icon (blue for
+    // player 1, red for player 2) instead of a scaled-down hero sprite.
     #updateLivesText() {
         if (!this.#livesText) {
             return;
         }
         this.#livesText.removeChildren().forEach((child) => child.destroy());
 
-        const tint = this.#getSelectedProfile().tint;
+        const medalTexture = this.#assets.getTexture(this.#activeCharacterIndex == 1 ? "player_2_lives_medal" : "player_1_lives_medal");
         for (let i = 0; i < this.#lives; i++) {
-            const icon = new Sprite(this.#assets.getTexture("stay0000"));
-            icon.scale.set(0.4);
-            icon.tint = tint;
-            icon.x = i * 32;
+            const icon = new Sprite(medalTexture);
+            icon.scale.set(2.5);
+            icon.x = i * (icon.width + 8);
             this.#livesText.addChild(icon);
         }
     }
@@ -535,23 +539,18 @@ export default class Game {
         }
     }
 
+    // The authentic pixel-font GAME OVER graphic from the ROM, tinted per
+    // player color, instead of a rendered web font.
     #showGameOver(){
-        const style = new TextStyle({
-            fontFamily: "Impact",
-            fontSize: 50,
-            fill: [0xffffff, 0xdd0000],
-            stroke: 0x000000,
-            strokeThickness: 5,
-            letterSpacing: 30,
-        })
-
-        const text = new Text("GAME OVER", style);
-        text.x = this.#pixiApp.screen.width/2 - text.width/2;
-        text.y = this.#pixiApp.screen.height/2 - text.height/2;
+        const texture = this.#assets.getTexture(this.#activeCharacterIndex == 1 ? "player_2_game_over" : "player_1_game_over");
+        const sprite = new Sprite(texture);
+        sprite.scale.set(6);
+        sprite.x = this.#pixiApp.screen.width/2 - sprite.width/2;
+        sprite.y = this.#pixiApp.screen.height/2 - sprite.height/2;
 
         this.#statusText?.destroy({ children: true });
-        this.#statusText = text;
-        this.#pixiApp.stage.addChild(text);
+        this.#statusText = sprite;
+        this.#pixiApp.stage.addChild(sprite);
 
         window.setTimeout(() => {
             this.#returnToMainMenu();
@@ -603,7 +602,9 @@ export default class Game {
         for (let damager of damagers){
             if(Physics.isCheckAABB(damager.hitBox, entity.hitBox)){
                 entity.damage(damager.x, damager.y);
-                if(damager.type != "enemy"){
+                // Laser bullets are piercing - they keep flying through
+                // whatever they just hit instead of being destroyed on impact.
+                if(damager.type != "enemy" && !damager.piercing){
                     damager.dead();
                 }
 
@@ -611,11 +612,19 @@ export default class Game {
             }
         }
 
-        const powerups = this.#entities.filter(powerup => powerup.type == "spreadgunPowerup" && entity.type == "hero");
+        const powerups = this.#entities.filter(powerup => (powerup.type == "spreadgunPowerup" || powerup.type == "weaponPowerup") && entity.type == "hero");
         for(let powerup of powerups){
+            console.log("DEBUG powerup", JSON.stringify(powerup.hitBox), "hero", JSON.stringify(entity.hitBox), "overlap", Physics.isCheckAABB(powerup.hitBox, entity.hitBox));
             if(Physics.isCheckAABB(powerup.hitBox, entity.hitBox)){
                 powerup.damage();
-                this.#weapon.setWeapon(powerup.powerupType);
+                // "barrier" (B) is not a weapon swap - it grants a temporary
+                // shield using the invulnerability the hero already supports.
+                if(powerup.powerupType == "barrier"){
+                    this.#hero.setInvulnerable(10);
+                }
+                else{
+                    this.#weapon.setWeapon(powerup.powerupType);
+                }
                 break;
             }
         }

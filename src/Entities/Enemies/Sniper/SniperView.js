@@ -1,7 +1,12 @@
 import { AnimatedSprite, Container, Sprite } from "../../../../lib/pixi.mjs";
 
-// Stationary rifleman. Reuses the hero sprites recoloured (no dedicated art yet)
-// and, like the hero, swaps sprite to point the rifle where it fires.
+// Stationary rifleman - dedicated enemy-red soldier art pulled from the ROM
+// set (it used to just be the hero sprites recoloured, then a placeholder
+// android). These are the same body tiles as the hero's own running/aiming
+// frames, but rendered with the "p2" palette (fully red instead of tan
+// skin + blue trousers), so it reads as its own character while keeping
+// a familiar soldier silhouette. Still swaps pose to point the rifle
+// where it fires, the same way the hero does.
 export default class SniperView extends Container{
 
     #collisionBox = {
@@ -16,13 +21,21 @@ export default class SniperView extends Container{
     #currentState = "flat";
     #assets;
 
-    // Rifle muzzle offset per pose (unflipped, local coords).
+    // Rifle muzzle offset per pose (unflipped, local coords), measured off
+    // the actual barrel-tip pixel in each source sprite so bullets leave
+    // from where the gun is drawn.
     #gunPoints = {
-        flat:     { x: 50, y: 29 },
-        up:       { x: 18, y: -30 },
-        diagUp:   { x: 40, y: 0 },
-        diagDown: { x: 47, y: 50 },
+        flat:     { x: 59, y: 15 },
+        up:       { x: 27, y: -63 },
+        diagUp:   { x: 47, y: -22 },
+        diagDown: { x: 49, y: 87 },
     };
+
+    // Every pose shares this scale and a common ground line (GROUND_Y) so
+    // switching poses does not make the soldier hop up and down.
+    #SCALE = 3.4;
+    #GROUND_Y = 90;
+    #CENTER_X = 20;
 
     constructor(assets, tint){
         super();
@@ -34,21 +47,23 @@ export default class SniperView extends Container{
         this.#rootNode.x = 10;
         this.addChild(this.#rootNode);
 
-        const make = (name, dx = 0, dy = 0) => {
+        const make = (name) => {
             const sprite = new Sprite(assets.getTexture(name));
             sprite.tint = tint;
-            sprite.x += dx;
-            sprite.y += dy;
+            sprite.scale.set(this.#SCALE);
+            sprite.x = this.#CENTER_X - sprite.width / 2;
+            sprite.y = this.#GROUND_Y - sprite.height;
             sprite.visible = false;
             this.#rootNode.addChild(sprite);
             return sprite;
         };
 
-        // Same offsets the hero uses for these frames.
-        this.#states.flat = make("stay0000");
-        this.#states.up = make("stayup0000", 2, -31);
-        this.#states.diagUp = make("runup0000", 0, -3);
-        this.#states.diagDown = make("rundown0000", 0, -3);
+        // Same body/run tiles as the hero, "p2" (all-red) palette: aiming
+        // level, straight up, diagonally up and diagonally down.
+        this.#states.flat = make("sprite_0e_p2");
+        this.#states.up = make("sprite_16_p2");
+        this.#states.diagUp = make("sprite_11_p2");
+        this.#states.diagDown = make("sprite_14_p2");
 
         this.#states.flat.visible = true;
     }

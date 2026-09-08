@@ -6,6 +6,7 @@ export default class Tourelle extends Entity{
     #bulletFactory;
     #timeCounter = 0;
     #health = 5;
+    #isDying = false;
 
     type = "enemy";
     
@@ -37,9 +38,17 @@ export default class Tourelle extends Entity{
     }
 
     damage(){
+        // Guards against a single piercing laser bullet racking up several
+        // hits while it overlaps the hitbox and triggering the death
+        // animation more than once.
+        if (this.#isDying){
+            return;
+        }
+
         this.#health--;
 
         if (this.#health < 1){
+            this.#isDying = true;
             this.#timeCounter = 0;
             const deadAnimation = this._view.showAndGetDeadAnimation();
             deadAnimation.onComplete = () => {

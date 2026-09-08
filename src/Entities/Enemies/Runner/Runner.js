@@ -27,6 +27,7 @@ export default class Runner extends Entity{
     #target;
     #state = States.Stay;
     #jumpTimer = 0;
+    #isDying = false;
 
     type = "enemy";
 
@@ -159,6 +160,13 @@ export default class Runner extends Entity{
     }
 
     damage(){
+        // Guards against a piercing laser bullet overlapping the hitbox for
+        // more than one frame and triggering a second death animation.
+        if (this.#isDying) {
+            return;
+        }
+        this.#isDying = true;
+
         this.#movement.x = 0;
         this.#GRAVITY_FORCE = 0;
         this.#velocityX = 0;
