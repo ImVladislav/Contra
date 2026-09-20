@@ -1,201 +1,245 @@
-<!DOCTYPE html>
+run<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
+    />
     <title>Contra</title>
     <style>
-        html,
-        body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            overscroll-behavior: none;
-            background: radial-gradient(circle at center, #18354a 0%, #07131f 70%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        overscroll-behavior: none;
+        background: radial-gradient(circle at center, #18354a 0%, #07131f 70%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .game-viewport {
+        width: min(100vw, 133.3333vh);
+        height: min(100vh, 75vw);
+        width: min(100vw, calc(100dvh * 4 / 3));
+        height: min(100dvh, calc(100vw * 3 / 4));
+        aspect-ratio: 4 / 3;
+        box-sizing: border-box;
+        overflow: hidden;
+        border-left: 4px solid #2d5d75;
+        border-right: 4px solid #2d5d75;
+        box-shadow:
+          0 0 0 2px #091b29,
+          0 0 40px rgba(0, 0, 0, 0.7);
+      }
+
+      .game-viewport canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hero-intro {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        z-index: 20;
+        pointer-events: none;
+      }
+
+      .hero-intro__card {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        width: min(88vw, 440px);
+        padding: 18px 22px;
+        border: 2px solid rgba(255, 209, 102, 0.7);
+        border-radius: 18px;
+        background: linear-gradient(
+          135deg,
+          rgba(11, 25, 37, 0.92),
+          rgba(24, 53, 74, 0.84)
+        );
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .hero-intro__portrait {
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        border: 2px solid #ffd166;
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffdd87, #c68010);
+        color: #07131f;
+        font:
+          900 30px/1 Arial,
+          sans-serif;
+        box-shadow: inset 0 0 0 3px rgba(7, 19, 31, 0.2);
+      }
+
+      .hero-intro__body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: #eaf4ff;
+      }
+
+      .hero-intro__name {
+        font:
+          900 26px/1.1 Arial,
+          sans-serif;
+        letter-spacing: 0.05em;
+        color: #ffd166;
+        text-transform: uppercase;
+      }
+
+      .hero-intro__text {
+        font:
+          500 18px/1.4 Arial,
+          sans-serif;
+        color: #dfeffb;
+      }
+
+      .touch-controls {
+        display: none;
+      }
+
+      @media (pointer: coarse), (max-width: 800px) {
+        .touch-controls {
+          position: fixed;
+          right: 0;
+          bottom: 0;
+          left: 0;
+          z-index: 10;
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          padding: 12px max(14px, env(safe-area-inset-right))
+            max(12px, env(safe-area-inset-bottom))
+            max(14px, env(safe-area-inset-left));
+          pointer-events: none;
+          touch-action: none;
         }
 
+        .touch-joystick,
+        .touch-actions {
+          position: relative;
+          width: clamp(112px, 25vw, 168px);
+          height: clamp(112px, 25vw, 168px);
+          pointer-events: auto;
+        }
+
+        .touch-actions {
+          width: clamp(160px, 35vw, 248px);
+          height: clamp(112px, 25vw, 168px);
+        }
+
+        .touch-stick {
+          position: absolute;
+          inset: 0;
+          border: 2px solid rgba(255, 255, 255, 0.36);
+          border-radius: 50%;
+          background: radial-gradient(
+            circle,
+            rgba(65, 102, 119, 0.8),
+            rgba(7, 19, 31, 0.76)
+          );
+          box-shadow:
+            inset 0 0 0 10px rgba(7, 19, 31, 0.2),
+            0 4px 12px rgba(0, 0, 0, 0.4);
+          touch-action: none;
+        }
+
+        .touch-stick-knob {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 42%;
+          height: 42%;
+          border: 2px solid #ffd166;
+          border-radius: 50%;
+          background: rgba(255, 209, 102, 0.78);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+        }
+
+        .touch-button {
+          position: absolute;
+          display: grid;
+          place-items: center;
+          box-sizing: border-box;
+          width: clamp(42px, 11vw, 72px);
+          height: clamp(42px, 11vw, 72px);
+          border: 2px solid rgba(255, 255, 255, 0.48);
+          border-radius: 50%;
+          color: #ffffff;
+          background: rgba(7, 19, 31, 0.76);
+          box-shadow:
+            inset 0 0 0 2px rgba(255, 209, 102, 0.12),
+            0 4px 12px rgba(0, 0, 0, 0.4);
+          font:
+            700 clamp(11px, 2.7vw, 17px)/1 Arial,
+            sans-serif;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          touch-action: none;
+        }
+
+        .touch-button.is-pressed,
+        .touch-button:active {
+          color: #07131f;
+          background: #ffd166;
+          filter: brightness(1.15);
+        }
+
+        .touch-actions .touch-button {
+          width: clamp(48px, 12vw, 78px);
+          height: clamp(48px, 12vw, 78px);
+        }
+        .touch-start {
+          top: 0;
+          left: 0;
+        }
+        .touch-pause {
+          top: 0;
+          right: 0;
+        }
+        .touch-jump {
+          bottom: 0;
+          left: 15%;
+        }
+        .touch-fire {
+          right: 15%;
+          bottom: 0;
+          color: #ffd166;
+          border-color: #ffd166;
+        }
+      }
+
+      @media (orientation: portrait) and (pointer: coarse) {
         .game-viewport {
-            width: min(100vw, 133.3333vh);
-            height: min(100vh, 75vw);
-            width: min(100vw, calc(100dvh * 4 / 3));
-            height: min(100dvh, calc(100vw * 3 / 4));
-            aspect-ratio: 4 / 3;
-            box-sizing: border-box;
-            overflow: hidden;
-            border-left: 4px solid #2d5d75;
-            border-right: 4px solid #2d5d75;
-            box-shadow: 0 0 0 2px #091b29, 0 0 40px rgba(0, 0, 0, 0.7);
-        }
-
-        .game-viewport canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-
-        .hero-intro {
-            position: fixed;
-            top: 18px;
-            right: 18px;
-            z-index: 20;
-            pointer-events: none;
-        }
-
-        .hero-intro__card {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            width: min(88vw, 440px);
-            padding: 18px 22px;
-            border: 2px solid rgba(255, 209, 102, 0.7);
-            border-radius: 18px;
-            background: linear-gradient(135deg, rgba(11, 25, 37, 0.92), rgba(24, 53, 74, 0.84));
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .hero-intro__portrait {
-            display: grid;
-            place-items: center;
-            width: 72px;
-            height: 72px;
-            border: 2px solid #ffd166;
-            border-radius: 16px;
-            background: linear-gradient(180deg, #ffdd87, #c68010);
-            color: #07131f;
-            font: 900 30px/1 Arial, sans-serif;
-            box-shadow: inset 0 0 0 3px rgba(7, 19, 31, 0.2);
-        }
-
-        .hero-intro__body {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            color: #eaf4ff;
-        }
-
-        .hero-intro__name {
-            font: 900 26px/1.1 Arial, sans-serif;
-            letter-spacing: 0.05em;
-            color: #ffd166;
-            text-transform: uppercase;
-        }
-
-        .hero-intro__text {
-            font: 500 18px/1.4 Arial, sans-serif;
-            color: #dfeffb;
+          position: absolute;
+          top: 2vh;
+          top: 2dvh;
+          width: 100vw;
+          height: min(75vw, 96vh);
+          height: min(75vw, 96dvh);
         }
 
         .touch-controls {
-            display: none;
+          display: none;
+          padding-bottom: max(10px, env(safe-area-inset-bottom));
         }
-
-        @media (pointer: coarse), (max-width: 800px) {
-            .touch-controls {
-                position: fixed;
-                right: 0;
-                bottom: 0;
-                left: 0;
-                z-index: 10;
-                display: flex;
-                align-items: flex-end;
-                justify-content: space-between;
-                padding: 12px max(14px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
-                pointer-events: none;
-                touch-action: none;
-            }
-
-            .touch-joystick,
-            .touch-actions {
-                position: relative;
-                width: clamp(112px, 25vw, 168px);
-                height: clamp(112px, 25vw, 168px);
-                pointer-events: auto;
-            }
-
-            .touch-actions {
-                width: clamp(160px, 35vw, 248px);
-                height: clamp(112px, 25vw, 168px);
-            }
-
-            .touch-stick {
-                position: absolute;
-                inset: 0;
-                border: 2px solid rgba(255, 255, 255, 0.36);
-                border-radius: 50%;
-                background: radial-gradient(circle, rgba(65, 102, 119, 0.8), rgba(7, 19, 31, 0.76));
-                box-shadow: inset 0 0 0 10px rgba(7, 19, 31, 0.2), 0 4px 12px rgba(0, 0, 0, 0.4);
-                touch-action: none;
-            }
-
-            .touch-stick-knob {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 42%;
-                height: 42%;
-                border: 2px solid #ffd166;
-                border-radius: 50%;
-                background: rgba(255, 209, 102, 0.78);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
-                transform: translate(-50%, -50%);
-                pointer-events: none;
-            }
-
-            .touch-button {
-                position: absolute;
-                display: grid;
-                place-items: center;
-                box-sizing: border-box;
-                width: clamp(42px, 11vw, 72px);
-                height: clamp(42px, 11vw, 72px);
-                border: 2px solid rgba(255, 255, 255, 0.48);
-                border-radius: 50%;
-                color: #ffffff;
-                background: rgba(7, 19, 31, 0.76);
-                box-shadow: inset 0 0 0 2px rgba(255, 209, 102, 0.12), 0 4px 12px rgba(0, 0, 0, 0.4);
-                font: 700 clamp(11px, 2.7vw, 17px)/1 Arial, sans-serif;
-                -webkit-tap-highlight-color: transparent;
-                user-select: none;
-                touch-action: none;
-            }
-
-            .touch-button.is-pressed,
-            .touch-button:active {
-                color: #07131f;
-                background: #ffd166;
-                filter: brightness(1.15);
-            }
-
-            .touch-actions .touch-button { width: clamp(48px, 12vw, 78px); height: clamp(48px, 12vw, 78px); }
-            .touch-start { top: 0; left: 0; }
-            .touch-pause { top: 0; right: 0; }
-            .touch-jump { bottom: 0; left: 15%; }
-            .touch-fire { right: 15%; bottom: 0; color: #ffd166; border-color: #ffd166; }
-        }
-
-        @media (orientation: portrait) and (pointer: coarse) {
-            .game-viewport {
-                position: absolute;
-                top: 2vh;
-                top: 2dvh;
-                width: 100vw;
-                height: min(75vw, 96vh);
-                height: min(75vw, 96dvh);
-            }
-
-            .touch-controls {
-                display: none;
-                padding-bottom: max(10px, env(safe-area-inset-bottom));
-            }
-        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <script src="src/index.js" type="module"></script>
-</body>
+  </body>
 </html>

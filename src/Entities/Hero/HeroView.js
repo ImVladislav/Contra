@@ -31,6 +31,8 @@ export default class HeroView extends Container {
     }
 
     #swimAnimTime = 0;
+    #wake;
+    #bubbles = [];
 
     #rootNode;
     #assets;
@@ -97,6 +99,14 @@ export default class HeroView extends Container {
         if (this.#stm.currentState == "swim" || this.#stm.currentState == "dive") {
             this.#swimAnimTime += 0.12;
             this.#stm.states[this.#stm.currentState].y = Math.sin(this.#swimAnimTime) * 3;
+        }
+
+        if (this.#stm.currentState == "swim") {
+            this.#drawWake();
+        }
+
+        if (this.#stm.currentState == "dive") {
+            this.#drawBubbles();
         }
     }
 
@@ -356,36 +366,57 @@ export default class HeroView extends Container {
         const body = new Sprite(this.#assets.getTexture("stay0000"));
         body.y = 38;
 
-        const wake = new Graphics();
-        wake.lineStyle(2, 0xbfe6ff, 0.55);
-        wake.moveTo(-14, 58);
-        wake.lineTo(48, 58);
+        this.#wake = new Graphics();
 
-        container.addChild(body, wake);
+        container.addChild(body, this.#wake);
         return container;
+    }
+
+    // Ripples trailing behind the swimmer, pulsing outward and fading.
+    #drawWake() {
+        const wake = this.#wake;
+        wake.clear();
+
+        for (let i = 0; i < 2; i++) {
+            const phase = (this.#swimAnimTime * 1.4 + i * Math.PI) % (Math.PI * 2);
+            const spread = (Math.sin(phase) + 1) / 2; // 0..1
+            const width = 26 + spread * 30;
+
+            wake.lineStyle(2, 0xbfe6ff, 0.55 * (1 - spread));
+            wake.moveTo(-14 - spread * 6, 58);
+            wake.lineTo(-14 - spread * 6 + width, 58);
+        }
     }
 
     // Dive: hero is fully under water - only bubbles give away the position.
     #getDiveImage() {
         const container = new Container();
 
-        const bubbleA = new Graphics();
-        bubbleA.beginFill(0xbfe6ff, 0.75);
-        bubbleA.drawCircle(20, 50, 3);
-        bubbleA.endFill();
+        this.#bubbles = [
+            { baseX: 20, baseY: 50, r: 3, alpha: 0.75, speed: 0.6, phase: 0 },
+            { baseX: 10, baseY: 42, r: 2, alpha: 0.5, speed: 0.8, phase: 1.5 },
+            { baseX: 28, baseY: 40, r: 2, alpha: 0.6, speed: 0.7, phase: 3 },
+        ].map((bubble) => ({ ...bubble, gfx: new Graphics() }));
 
-        const bubbleB = new Graphics();
-        bubbleB.beginFill(0xbfe6ff, 0.5);
-        bubbleB.drawCircle(10, 42, 2);
-        bubbleB.endFill();
-
-        const bubbleC = new Graphics();
-        bubbleC.beginFill(0xbfe6ff, 0.6);
-        bubbleC.drawCircle(28, 40, 2);
-        bubbleC.endFill();
-
-        container.addChild(bubbleA, bubbleB, bubbleC);
+        this.#bubbles.forEach((bubble) => container.addChild(bubble.gfx));
         return container;
+    }
+
+    // Bubbles rise from their spawn point, wobble sideways and fade as they surface.
+    #drawBubbles() {
+        const t = this.#swimAnimTime;
+
+        for (const bubble of this.#bubbles) {
+            const rise = (t * 6 * bubble.speed + bubble.phase * 10) % 24;
+            const fade = 1 - rise / 24;
+            const x = bubble.baseX + Math.sin(t * 2 + bubble.phase) * 1.5;
+            const y = bubble.baseY - rise;
+
+            bubble.gfx.clear();
+            bubble.gfx.beginFill(0xbfe6ff, bubble.alpha * fade);
+            bubble.gfx.drawCircle(x, y, bubble.r);
+            bubble.gfx.endFill();
+        }
     }
 
     // Recolours every sprite of the hero (used for the second character).
