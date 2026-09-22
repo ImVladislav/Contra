@@ -1,12 +1,9 @@
 import { AnimatedSprite, Container, Sprite } from "../../../../lib/pixi.mjs";
 
-// Stationary rifleman - dedicated enemy-red soldier art pulled from the ROM
-// set (it used to just be the hero sprites recoloured, then a placeholder
-// android). These are the same body tiles as the hero's own running/aiming
-// frames, but rendered with the "p2" palette (fully red instead of tan
-// skin + blue trousers), so it reads as its own character while keeping
-// a familiar soldier silhouette. Still swaps pose to point the rifle
-// where it fires, the same way the hero does.
+// Stationary rifleman - a dedicated armored-soldier enemy design (no longer
+// the hero's own sprite frames recoloured), pulled from the ROM HD pack's
+// original enemy set. Still swaps pose to point the rifle where it fires,
+// the same way the hero does.
 export default class SniperView extends Container{
 
     #collisionBox = {
@@ -25,15 +22,17 @@ export default class SniperView extends Container{
     // the actual barrel-tip pixel in each source sprite so bullets leave
     // from where the gun is drawn.
     #gunPoints = {
-        flat:     { x: 59, y: 15 },
-        up:       { x: 27, y: -63 },
-        diagUp:   { x: 47, y: -22 },
-        diagDown: { x: 49, y: 87 },
+        flat:     { x: 44, y: 59 },
+        up:       { x: 35, y: 3 },
+        diagUp:   { x: 35, y: 3 },
+        diagDown: { x: 37, y: 60 },
     };
 
     // Every pose shares this scale and a common ground line (GROUND_Y) so
-    // switching poses does not make the soldier hop up and down.
-    #SCALE = 3.4;
+    // switching poses does not make the soldier hop up and down. Sized to
+    // land the standing pose at roughly the hero's own height (~90px),
+    // instead of towering over him.
+    #SCALE = 1.1;
     #GROUND_Y = 90;
     #CENTER_X = 20;
 
@@ -58,12 +57,13 @@ export default class SniperView extends Container{
             return sprite;
         };
 
-        // Same body/run tiles as the hero, "p2" (all-red) palette: aiming
-        // level, straight up, diagonally up and diagonally down.
-        this.#states.flat = make("sprite_0e_p2");
-        this.#states.up = make("sprite_16_p2");
-        this.#states.diagUp = make("sprite_11_p2");
-        this.#states.diagDown = make("sprite_14_p2");
+        // Dedicated enemy soldier art: aiming level, straight up, diagonally
+        // up and diagonally down. The pack has no separate straight-up
+        // frame, so "up" reuses the diagonal-up pose.
+        this.#states.flat = make("sniper_flat0000");
+        this.#states.up = make("sniper_diagup0000");
+        this.#states.diagUp = make("sniper_diagup0000");
+        this.#states.diagDown = make("sniper_diagdown0000");
 
         this.#states.flat.visible = true;
     }

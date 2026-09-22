@@ -38,7 +38,7 @@ export default class SceneFactory{
         // Open riverside with sky and mountains first; from block 22 on the
         // jungle wall stands full height, canopy to ground - nothing floats.
         for(let i = 22; i <= this.#bossBlock; i++){
-            this.#platformsFactory.createJungle(this.#blockSize * i, 0, 5);
+            this.#platformsFactory.createJungle(this.#blockSize * i, 0, 384, i === 22);
         }
     }
 

@@ -17,10 +17,12 @@
     "jump0002",
     "jump0003",
     "junglebottom0000",
+    "junglebottom0001",
     "jungletop0000",
     "lay0000",
     "mounts0000",
     "platform0000",
+    "platform0001",
     "powerup0000",
     "run0000",
     "run0001",
@@ -57,7 +59,14 @@
     "sprite_0e_p2",
     "sprite_11_p2",
     "sprite_14_p2",
-    "sprite_16_p2"
+    "sprite_16_p2",
+    "trunk0000",
+    "vine0000",
+    "shorebush0000",
+    "treeline0000",
+    "sniper_flat0000",
+    "sniper_diagup0000",
+    "sniper_diagdown0000"
   ],
   "animations": {
     "jump": [
@@ -87,9 +96,7 @@
     "runnerrun": [
       "runnerrun0000",
       "runnerrun0001",
-      "runnerrun0002",
-      "runnerrun0003",
-      "runnerrun0004"
+      "runnerrun0002"
     ],
     "bossdoor": [
       "bossdoor0000",

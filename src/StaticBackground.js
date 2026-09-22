@@ -18,13 +18,29 @@ export default class StaticBackground extends Container{
             star.y = Math.random() * 300;
         }
 
-        // Mountain ridge tiled edge to edge; its base lines up with the top
-        // of the main rock tier (y = 384) so the peaks sit on the ground.
-        const ridgeScale = 1.4;
-        const ridgeWidth = 140 * ridgeScale;
-        const ridgeHeight = 89 * ridgeScale;
-        for(let x = -ridgeWidth / 2; x < screenSize.width + ridgeWidth; x += ridgeWidth){
-            this.#createMounts(assets, x, 384 - ridgeHeight + 2, ridgeScale);
+        // Mountain ridge tiled edge to edge (128 wide, so it lines up with
+        // the block grid and repeats without a seam), 60% of the window's
+        // height and bottom-anchored to the floor of the window (not the
+        // top) - this whole layer sits behind the World (ground, water,
+        // treeline, everything), so it only ever shows through wherever the
+        // playable level doesn't cover it. Drawn first so the tree line and
+        // ground sit in front of it.
+        const ridgeWidth = 127;
+        const ridgeHeight = screenSize.height * 0.5;
+        const ridgeTop = screenSize.height - ridgeHeight;
+        for(let x = -ridgeWidth; x < screenSize.width + ridgeWidth; x += ridgeWidth){
+            this.#createMounts(assets, x, ridgeTop, ridgeHeight);
+        }
+
+        // Distant tree line with its own water reflection, bottom-aligned to
+        // the real water line (y = 744) so it reads as a hazy far shore seen
+        // across the water, low down - behind the dirt cliffs, only peeking
+        // through over open water or gaps in the ground.
+        const treeWidth = 128;
+        const treeHeight = 145;
+        const treeTop = 744 - treeHeight;
+        for(let x = -treeWidth; x < screenSize.width + treeWidth; x += treeWidth){
+            this.#createTreeline(assets, x, treeTop);
         }
     }
 
@@ -37,14 +53,24 @@ export default class StaticBackground extends Container{
         return star;
     }
 
-    #createMounts(assets, x, y, scale){
+    #createMounts(assets, x, y, height){
         const mounts = new Sprite(assets.getTexture("mounts0000"));
-        mounts.scale.x = scale;
-        mounts.scale.y = scale;
         mounts.x = x;
         mounts.y = y;
+        if (height){
+            mounts.height = height;
+        }
         this.addChild(mounts);
 
         return mounts;
+    }
+
+    #createTreeline(assets, x, y){
+        const treeline = new Sprite(assets.getTexture("treeline0000"));
+        treeline.x = x;
+        treeline.y = y;
+        this.addChild(treeline);
+
+        return treeline;
     }
 }
