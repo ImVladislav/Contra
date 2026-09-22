@@ -797,7 +797,7 @@ export default class Game {
         buttonContext.arrowRight = this.keyboardProcessor.isButtonPressed("ArrowRight");
         buttonContext.arrowUp = this.keyboardProcessor.isButtonPressed("ArrowUp");
         buttonContext.arrowDown = this.keyboardProcessor.isButtonPressed("ArrowDown");
-        buttonContext.shoot = this.keyboardProcessor.isButtonPressed("KeyA");
+        buttonContext.shoot = this.keyboardProcessor.isButtonPressed("KeyA") || this.keyboardProcessor.isButtonPressed("KeyF");
         return buttonContext;
     }
 
