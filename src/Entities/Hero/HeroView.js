@@ -37,6 +37,13 @@ export default class HeroView extends Container {
   #swimAnimTime = 0;
   #wake;
   #bubbles = [];
+  #submergeBody;
+  #splash;
+  #diveTransition = {
+    active: false,
+    progress: 0,
+    duration: 20,
+  };
 
   #rootNode;
   #assets;
@@ -97,6 +104,10 @@ export default class HeroView extends Container {
     this.#rootNode.visible = true;
     this.#collisionBox.width = this.#bounds.width;
     this.#collisionBox.height = this.#bounds.height;
+    this.#diveTransition.active = false;
+    if (this.#submergeBody) {
+      this.#submergeBody.visible = false;
+    }
   }
 
   update() {
@@ -111,6 +122,9 @@ export default class HeroView extends Container {
     }
 
     if (this.#stm.currentState == "dive") {
+      if (this.#diveTransition.active) {
+        this.#updateSubmerge();
+      }
       this.#drawBubbles();
     }
   }
@@ -236,7 +250,11 @@ export default class HeroView extends Container {
   }
 
   showDive() {
+    const wasAlreadyDiving = this.#stm.currentState == "dive";
     this.#toState("dive");
+    if (!wasAlreadyDiving) {
+      this.#startSubmerge();
+    }
     this.#setBulletPointShift(35, 75);
 
     this.#hitBox.width = 34;
@@ -385,25 +403,45 @@ export default class HeroView extends Container {
     return container;
   }
 
-  // Ripples trailing behind the swimmer, pulsing outward and fading.
+  // Ripples trailing behind the swimmer: a gently undulating waterline plus
+  // expanding ring ripples, instead of a single rigid straight bar.
   #drawWake() {
     const wake = this.#wake;
     wake.clear();
 
-    for (let i = 0; i < 2; i++) {
-      const phase = (this.#swimAnimTime * 1.4 + i * Math.PI) % (Math.PI * 2);
-      const spread = (Math.sin(phase) + 1) / 2; // 0..1
-      const width = 26 + spread * 30;
+    const waterLineY = 58;
+    const centerX = 20; // roughly the swimmer's torso, not the sprite's left edge
 
-      wake.lineStyle(2, 0xbfe6ff, 0.55 * (1 - spread));
-      wake.moveTo(-14 - spread * 6, 58);
-      wake.lineTo(-14 - spread * 6 + width, 58);
+    wake.lineStyle(1.5, 0xd9f2ff, 0.5);
+    wake.moveTo(centerX - 24, waterLineY);
+    for (let x = centerX - 24; x <= centerX + 24; x += 3) {
+      const y =
+        waterLineY + Math.sin(this.#swimAnimTime * 2.2 + x * 0.35) * 1.4;
+      wake.lineTo(x, y);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const cycle = 2.2;
+      const phase = (this.#swimAnimTime * 0.9 + i * (cycle / 3)) % cycle;
+      const t = phase / cycle; // 0..1
+      const radiusX = 6 + t * 22;
+      const radiusY = radiusX * 0.32;
+
+      wake.lineStyle(1.2, 0xe8f8ff, 0.5 * (1 - t));
+      wake.drawEllipse(centerX, waterLineY, radiusX, radiusY);
     }
   }
 
-  // Dive: hero is fully under water - only bubbles give away the position.
+  // Dive: hero sinks below the surface (animated), then only bubbles give away the position.
   #getDiveImage() {
     const container = new Container();
+
+    const submergeBody = new Sprite(this.#assets.getTexture("stay0000"));
+    submergeBody.y = 38;
+    submergeBody.visible = false;
+    this.#submergeBody = submergeBody;
+
+    this.#splash = new Graphics();
 
     this.#bubbles = [
       { baseX: 20, baseY: 50, r: 3, alpha: 0.75, speed: 0.6, phase: 0 },
@@ -411,8 +449,46 @@ export default class HeroView extends Container {
       { baseX: 28, baseY: 40, r: 2, alpha: 0.6, speed: 0.7, phase: 3 },
     ].map((bubble) => ({ ...bubble, gfx: new Graphics() }));
 
+    container.addChild(submergeBody, this.#splash);
     this.#bubbles.forEach((bubble) => container.addChild(bubble.gfx));
     return container;
+  }
+
+  // Kicks off the sink-under-the-surface animation when diving begins.
+  #startSubmerge() {
+    this.#diveTransition.active = true;
+    this.#diveTransition.progress = 0;
+    this.#submergeBody.visible = true;
+    this.#submergeBody.alpha = 1;
+    this.#submergeBody.y = 38;
+    this.#splash.clear();
+  }
+
+  // Advances the submerge animation: the body just sinks (no fade - the
+  // opaque water tile on the foreground layer naturally covers it once it
+  // passes the waterline, ~66 in this local space) while a splash ring
+  // expands at the surface, then hands off to the bubbles.
+  #updateSubmerge() {
+    const transition = this.#diveTransition;
+    transition.progress += 1 / transition.duration;
+    const p = Math.min(transition.progress, 1);
+    const sinkT = p * p; // accelerate downward, like gravity pulling under
+
+    this.#submergeBody.y = 38 + sinkT * 50;
+
+    this.#splash.clear();
+    if (p < 1) {
+      const radiusX = 8 + p * 24;
+      const radiusY = radiusX * 0.3;
+      this.#splash.lineStyle(2, 0xe8f8ff, 0.6 * (1 - p));
+      this.#splash.drawEllipse(20, 40, radiusX, radiusY);
+    }
+
+    if (p >= 1) {
+      transition.active = false;
+      this.#submergeBody.visible = false;
+      this.#splash.clear();
+    }
   }
 
   // Bubbles rise from their spawn point, wobble sideways and fade as they surface.

@@ -10,6 +10,13 @@ export default class SceneFactory{
     #blockSize = 128;
     #bossBlock = 52;
 
+    // Ground/platform tiers are registered here first (x columns + y + the
+    // factory method to build them) and only actually built afterwards, once
+    // every tier is known - that lets us work out which blocks are the
+    // topmost thing in their column (nothing else stacked above) so we can
+    // dress just those with a bush, instead of guessing per call site.
+    #tierDefs = [];
+
     constructor(platforms, entities, platformFactory, enemyFactory, target, powerupFactory){
         this.#platforms = platforms;
         this.#entities = entities;
@@ -21,10 +28,12 @@ export default class SceneFactory{
 
     createScene(){
         this.#createDecoration();
-        this.#createPlatforms();
-        this.#createGround();
+        this.#registerPlatforms();
+        this.#registerGround();
+        this.#buildRegisteredTiers();
         this.#createWater();
         this.#createBossWall();
+        this.#createCliffDecorations();
 
         this.#createEnemies();
         this.#createPowerups();
@@ -42,47 +51,116 @@ export default class SceneFactory{
         }
     }
 
-    // Jump-through rock tiers. Each tier fills the space below it with rock,
-    // so stacked tiers read as one big cliff face.
-    #createPlatforms(){
-        // Upper tier (canopy level) - runners rush along it.
-        let xIndexes = [24,25,26,27,28,29,30,31,32,33,34];
-        this.#create(xIndexes, 276, this.#platformsFactory.createPlatform);
-
-        // Main tier - the "road" through the stage.
-        xIndexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 20,21,22,23,24,25, 34,35,36, 45,46,47,48];
-        this.#create(xIndexes, 384, this.#platformsFactory.createPlatform);
-
-        // Lower ledges.
-        xIndexes = [5,6,7, 13,14, 31,32, 49];
-        this.#create(xIndexes, 492, this.#platformsFactory.createPlatform);
-
-        xIndexes = [46,47,48];
-        this.#create(xIndexes, 578, this.#platformsFactory.createPlatform);
-
-        xIndexes = [8, 11, 28,29,30];
-        this.#create(xIndexes, 600, this.#platformsFactory.createPlatform);
-
-        xIndexes = [50];
-        this.#create(xIndexes, 624, this.#platformsFactory.createPlatform);
+    // Vines/bushes on exposed dirt cliff faces - drawn after the ground
+    // platforms exist so they sit on top of the dirt instead of getting
+    // covered by it.
+    #createCliffDecorations(){
+        // The opening riverbank drops straight to water on its left edge -
+        // dress that exposed dirt face with vines and a bush at the base,
+        // like the reference shoreline shot.
+        this.#platformsFactory.createCliffVines(this.#blockSize * 1, 384, 768);
     }
 
-    // Solid ground and rock walls.
-    #createGround(){
+    // Jump-through rock tiers. Each tier fills the space below it with rock,
+    // so stacked tiers read as one big cliff face. Only registered here -
+    // #buildRegisteredTiers() does the actual building once every tier
+    // (ground included) is known.
+    #registerPlatforms(){
+        // Upper tier (canopy level) - runners rush along it.
+        this.#registerTier([24,25,26,27,28,29,30,31,32,33,34], 276, this.#platformsFactory.createPlatform);
+
+        // Main tier - the "road" through the stage.
+        this.#registerTier([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15, 20,21,22,23,24,25, 34,35,36, 45,46,47,48], 384, this.#platformsFactory.createPlatform);
+
+        // Lower ledges.
+        this.#registerTier([5,6,7, 13,14, 31,32, 49], 492, this.#platformsFactory.createPlatform);
+
+        this.#registerTier([46,47,48], 578, this.#platformsFactory.createPlatform);
+
+        this.#registerTier([8, 11, 28,29,30], 600, this.#platformsFactory.createPlatform);
+
+        this.#registerTier([50], 624, this.#platformsFactory.createPlatform);
+    }
+
+    // Solid ground and rock walls. Only registered here, same as above.
+    #registerGround(){
         // Riverbank steps you can climb out of the water onto.
-        let xIndexes = [9,10, 25,26,27, 32,33,34];
-        this.#create(xIndexes, 720, this.#platformsFactory.createStepBox);
+        this.#registerTier([9,10, 25,26,27, 32,33,34], 720, this.#platformsFactory.createStepBox);
 
         // Rock staircase climbing towards the fortress.
-        xIndexes = [36,37, 39,40];
-        this.#create(xIndexes, 600, this.#platformsFactory.createBox);
+        this.#registerTier([36,37, 39,40], 600, this.#platformsFactory.createBox);
 
-        xIndexes = [42,43];
-        this.#create(xIndexes, 492, this.#platformsFactory.createBox);
+        this.#registerTier([42,43], 492, this.#platformsFactory.createBox);
 
         // Final approach to the boss wall.
-        xIndexes = [35, 45,46,47,48,49,50,51,52];
-        this.#create(xIndexes, 720, this.#platformsFactory.createBox);
+        this.#registerTier([35, 45,46,47,48,49,50,51,52], 720, this.#platformsFactory.createBox);
+    }
+
+    #registerTier(xIndexes, y, createFunc){
+        this.#tierDefs.push({xIndexes, y, createFunc});
+    }
+
+    // Builds every registered platform/ground tier. Any block that turns out
+    // to be the topmost thing in its column - nothing else registered
+    // higher up (smaller y) at that same x - counts as "exposed". Once every
+    // tier is built, contiguous runs of exposed columns sharing the same y
+    // get dressed with a single unbroken bush strip each, so open-top blocks
+    // don't read as bare while covered/stacked ones (a ledge sitting under
+    // another tier) stay clean, and a run of several open blocks reads as
+    // one continuous treeline instead of separate per-block clumps.
+    #buildRegisteredTiers(){
+        const topmostY = new Map();
+        for (const {xIndexes, y} of this.#tierDefs){
+            for (const i of xIndexes){
+                if (!topmostY.has(i) || y < topmostY.get(i)){
+                    topmostY.set(i, y);
+                }
+            }
+        }
+
+        for (const {xIndexes, y, createFunc} of this.#tierDefs){
+            for (const i of xIndexes){
+                const x = this.#blockSize * i;
+                this.#platforms.push(createFunc.call(this.#platformsFactory, x, y));
+            }
+        }
+
+        this.#buildBushStrips(topmostY);
+    }
+
+    // Groups exposed columns into contiguous runs (consecutive x-indices
+    // sharing the same topmost y) and drops one bush strip per run, sized to
+    // the run's exact pixel width so it never overflows past its ends.
+    #buildBushStrips(topmostY){
+        const indexes = [...topmostY.keys()].sort((a, b) => a - b);
+
+        let runStart = null;
+        let runEnd = null;
+        let runY = null;
+
+        const flush = () => {
+            if (runStart === null){
+                return;
+            }
+            const xStart = this.#blockSize * runStart;
+            const widthPixels = this.#blockSize * (runEnd - runStart + 1);
+            this.#platformsFactory.createBushStrip(xStart, widthPixels, runY);
+        };
+
+        for (const i of indexes){
+            const y = topmostY.get(i);
+
+            if (runStart !== null && i === runEnd + 1 && y === runY){
+                runEnd = i;
+                continue;
+            }
+
+            flush();
+            runStart = i;
+            runEnd = i;
+            runY = y;
+        }
+        flush();
     }
 
     #createWater(){

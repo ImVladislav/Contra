@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite } from "../../../lib/pixi.mjs";
+import { Container, Graphics, Sprite, TilingSprite } from "../../../lib/pixi.mjs";
 import BridgePlatform from "./BridgePlatform.js";
 import Platform from "./Platform.js";
 import PlatformView from "./PlatformView.js";
@@ -187,6 +187,26 @@ export default class PlatformFactory{
         bush.x = x - 14;
         bush.y = waterLevel - bush.height * 0.85;
         this.#worldContainer.background.addChild(bush);
+    }
+
+    // A continuous strip of undergrowth running along the grass of a whole
+    // run of adjacent blocks that have nothing stacked above them (no
+    // roof/ledge overhead) - breaks up the bare grass line the way
+    // undergrowth scatters across the open islands in the reference art.
+    // Built as a single TilingSprite spanning the exact pixel width of the
+    // run, so it reads as one unbroken monolith with no seams at block
+    // boundaries, and is clipped precisely to the run's own width so it
+    // never overhangs into a neighbouring (covered) block. Sourced from a
+    // long unbroken crop of the reference shoreline treeline, which tiles
+    // cleanly since it's cut straight from continuous foliage.
+    createBushStrip(xStart, widthPixels, y){
+        const texture = this.#assets.getTexture("bushstrip0000");
+        const height = texture.height;
+
+        const strip = new TilingSprite(texture, widthPixels, height);
+        strip.x = xStart;
+        strip.y = y - height + 4;
+        this.#worldContainer.background.addChild(strip);
     }
 
     // Every 3rd block skips the lamp-post detail baked into platform0000,

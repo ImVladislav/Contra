@@ -66,7 +66,11 @@
     "treeline0000",
     "sniper_flat0000",
     "sniper_diagup0000",
-    "sniper_diagdown0000"
+    "sniper_diagdown0000",
+    "bushtop0000",
+    "bushtop0001",
+    "bushtop0002",
+    "bushstrip0000"
   ],
   "animations": {
     "jump": [
