@@ -97,19 +97,51 @@ export default class PlatformFactory{
         return shading;
     }
 
+    // Damage decals (a burnt/cracked hole cutout) sit on top of the intact
+    // wall picture itself - three fixed spots that fade in one at a time as
+    // the boss takes hits, instead of ever swapping the base wall image for
+    // a different one (that "pile of broken textures" look was already
+    // rejected once - this stays purely additive on the single static skin).
+    #bossDamageSpots = [
+        {x: 190, y: 55, scale: 0.42, rotation: 0},
+        {x: 245, y: 175, scale: 0.5, rotation: 2.6},
+        {x: 260, y: 460, scale: 0.55, rotation: 1.1},
+    ];
+
     createBossWall(x, y){
         const skin = new Sprite(this.#assets.getTexture("boss0000"));
-        skin.scale.x = 2.5;
-        skin.scale.y = 2.35;
+        skin.scale.x = 1.5;
+        skin.scale.y = 1.5;
 
         const view = new PlatformView(this.#platformWidth * 3, 768);
         view.addChild(skin);
 
+        const damageSprites = this.#bossDamageSpots.map(spot => {
+            const decal = new Sprite(this.#assets.getTexture("bossdamage0000"));
+            decal.anchor.set(0.5);
+            decal.x = spot.x;
+            decal.y = spot.y;
+            decal.rotation = spot.rotation;
+            decal.scale.set(spot.scale);
+            decal.alpha = 0;
+            view.addChild(decal);
+            return decal;
+        });
+
         const platform = new Platform(view);
-        platform.x = x-58;
-        platform.y = y-255;
+        platform.x = x-64;
+        platform.y = y-45;
         platform.type = "box";
         this.#worldContainer.background.addChild(view);
+
+        // stage 0 = pristine, 1..3 = that many scorch/crack decals visible.
+        // Called from the boss as its health drops, so the wall visibly
+        // scars up over the fight instead of only the hit-spark flashing.
+        platform.showDamage = (stage) => {
+            damageSprites.forEach((decal, i) => {
+                decal.alpha = i < stage ? 0.95 : 0;
+            });
+        };
 
         return platform;
     }
