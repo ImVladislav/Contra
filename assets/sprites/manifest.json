@@ -19,6 +19,7 @@
     "junglebottom0000",
     "junglebottom0001",
     "jungletop0000",
+    "jungletop0001",
     "lay0000",
     "mounts0000",
     "platform0000",
@@ -70,7 +71,8 @@
     "bushtop0000",
     "bushtop0001",
     "bushtop0002",
-    "bushstrip0000"
+    "bushstrip0000",
+    "palmtree0000"
   ],
   "animations": {
     "jump": [

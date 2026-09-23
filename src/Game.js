@@ -789,6 +789,15 @@ export default class Game {
             }
         };
         this.keyboardProcessor.getButton("KeyP").executeDown = this.keyboardProcessor.getButton("Escape").executeDown;
+
+        // TEMP DEBUG: teleport the hero to the boss for testing. Remove before ship.
+        this.keyboardProcessor.getButton("KeyY").executeDown = function () {
+            if (this.#menuMode != "playing") {
+                return;
+            }
+            this.#hero.x = 6656 - 250;
+            this.#hero.y = 100;
+        };
     }
 
     getArrowButtonContext() {

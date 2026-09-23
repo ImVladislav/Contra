@@ -16,6 +16,9 @@ export default class KeyboardProcessor{
         KeyP:{
             isDown:false
         },
+        KeyY:{
+            isDown:false
+        },
         ArrowLeft:{
             isDown:false
         },

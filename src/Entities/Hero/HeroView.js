@@ -377,7 +377,7 @@ export default class HeroView extends Container {
 
   #getJumpImage() {
     const view = new AnimatedSprite(this.#assets.getAnimationTextures("jump"));
-    view.animationSpeed = 1 / 10;
+    view.animationSpeed = 1 / 4;
     view.play();
     view.y -= 3;
     view.x -= 10;

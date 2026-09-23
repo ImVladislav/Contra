@@ -99,23 +99,28 @@ export default class PlatformFactory{
 
     createBossWall(x, y){
         const skin = new Sprite(this.#assets.getTexture("boss0000"));
-        skin.scale.x = 1.5;
-        skin.scale.y = 1.5;
+        skin.scale.x = 2.5;
+        skin.scale.y = 2.35;
 
         const view = new PlatformView(this.#platformWidth * 3, 768);
         view.addChild(skin);
 
         const platform = new Platform(view);
-        platform.x = x-64;
-        platform.y = y-45;
+        platform.x = x-58;
+        platform.y = y-255;
         platform.type = "box";
         this.#worldContainer.background.addChild(view);
 
         return platform;
     }
 
+    // Deck texture is a small repeating grated-road tile (cropped from the
+    // reference bridge art) tiled edge-to-edge across the full segment
+    // width via TilingSprite, so it reads as one continuous walkway instead
+    // of a single stretched/squashed image per segment.
     createBridge(x, y){
-        const skin = new Sprite(this.#assets.getTexture("bridge0000"));
+        const texture = this.#assets.getTexture("bridge0000");
+        const skin = new TilingSprite(texture, this.#platformWidth, texture.height);
         const view = new PlatformView(this.#platformWidth, this.#platformHeight);
         view.addChild(skin);
 
@@ -127,50 +132,110 @@ export default class PlatformFactory{
         return platform;
     }
 
-    // groundLevel = the y where the walkable ground tier actually starts
-    // (the real level geometry, not an arbitrary depth). The canopy sits
-    // once at the top; below it, real tree-trunk sprites (not a flat green
-    // fill) run down to groundLevel on a dark jungle-interior background.
-    // Bush undergrowth is only placed at the entrance block (isEntrance),
-    // sitting right on the ground line - every other wall block stays
-    // trunks-only so it never clutters the floating platforms in front of
-    // the wall.
-    createJungle(x, y, groundLevel = 384, isEntrance = false){
+    // The canopy top for one column - both jungletop0000/0001 are alpha-cut
+    // (transparent sky, not a baked-in black rectangle), so unlike the old
+    // opaque version they can freely overlap or gap without leaving a solid
+    // colour block behind them. Alternating between the two variants with a
+    // small per-column jitter makes each tree read as its own individual
+    // specimen planted in a row, instead of one flat tile stamped
+    // identically every 128px. Bush undergrowth is only placed at the
+    // entrance block (isEntrance), sitting right on the ground line.
+    createJungle(x, y, isEntrance = false){
         const wall = new Container();
         wall.x = x;
         wall.y = y;
 
-        const jungleTop = new Sprite(this.#assets.getTexture("jungletop0000"));
+        const hash = Math.abs(Math.sin(x * 78.233) * 12543.123);
+        const frac = hash - Math.floor(hash);
+        const variant = frac < 0.5 ? "jungletop0000" : "jungletop0001";
+        const jungleTop = new Sprite(this.#assets.getTexture(variant));
+        jungleTop.x = Math.round((frac - 0.5) * 26);
         wall.addChild(jungleTop);
-
-        const trunkTop = jungleTop.height - 10;
-        const trunkHeight = Math.max(groundLevel - y - trunkTop, 0);
-        if (trunkHeight > 0){
-            const backdrop = new Graphics();
-            backdrop.beginFill(0x081712);
-            backdrop.drawRect(0, trunkTop, this.#platformWidth, trunkHeight);
-            backdrop.endFill();
-            wall.addChild(backdrop);
-
-            const trunkOffsets = [18, 72];
-            for (const offsetX of trunkOffsets){
-                const trunk = new Sprite(this.#assets.getTexture("trunk0000"));
-                trunk.x = offsetX;
-                trunk.y = trunkTop;
-                trunk.height = trunkHeight;
-                wall.addChild(trunk);
-            }
-        }
 
         if (isEntrance){
             const bush = new Sprite(this.#assets.getTexture("junglebottom0000"));
-            bush.y = groundLevel - y - bush.height * 0.65;
+            bush.y = 384 - y - bush.height * 0.65;
             wall.addChild(bush);
         }
 
         this.#worldContainer.background.addChild(wall);
 
         return wall;
+    }
+
+    // The dark jungle-interior backdrop + tree trunks behind a whole run of
+    // wall columns, drawn as ONE continuous shape spanning widthPixels
+    // instead of being rebuilt per 128px column - that per-column rebuild is
+    // what showed up as a hard repeating seam (each column's rectangle edge
+    // lining up with the next). Trunks are scattered at an organic,
+    // non-128px-aligned spacing so the run doesn't read as a picket fence
+    // either. groundLevel = the y where the walkable ground tier starts.
+    createJungleWall(xStart, widthPixels, groundLevel = 384){
+        const wall = new Container();
+        wall.x = xStart;
+        wall.y = 0;
+
+        const jungleTopHeight = this.#assets.getTexture("jungletop0000").height;
+        const trunkTop = jungleTopHeight - 10;
+        const trunkHeight = Math.max(groundLevel - trunkTop, 0);
+        if (trunkHeight <= 0){
+            return wall;
+        }
+
+        // Vertical gradient - lighter jungle-green right under the canopy,
+        // fading to near-black at the ground - reads as a deep interior
+        // instead of a painted cardboard backdrop, and being one shape for
+        // the whole run means there's no seam between columns.
+        const backdrop = new Graphics();
+        const bands = 6;
+        for (let b = 0; b < bands; b++){
+            const t = b / (bands - 1);
+            const shade = Math.round(0x17 * (1 - t) + 0x02 * t);
+            const color = (0x08 << 16) | (Math.round(0x1a * (1 - t) + 0x08 * t) << 8) | shade;
+            backdrop.beginFill(color);
+            backdrop.drawRect(0, trunkTop + (trunkHeight * b) / bands, widthPixels, trunkHeight / bands + 1);
+            backdrop.endFill();
+        }
+        wall.addChild(backdrop);
+
+        // trunk0000 is a small (9px wide) native bark swatch - scaled up 3x
+        // and repeated vertically via TilingSprite instead of stretching a
+        // single image over trunkHeight, which used to blur into a smeared
+        // mess on tall runs. tileScale keeps the bark crisp at every height.
+        const trunkTexture = this.#assets.getTexture("trunk0000");
+        const trunkScale = 3;
+        const trunkWidth = trunkTexture.width * trunkScale;
+        let x = 14;
+        while (x < widthPixels - 14){
+            const trunk = new TilingSprite(trunkTexture, trunkWidth, trunkHeight);
+            trunk.tileScale.set(trunkScale, trunkScale);
+            trunk.x = x;
+            trunk.y = trunkTop;
+            wall.addChild(trunk);
+
+            // Deterministic pseudo-random gap (46-76px) instead of a fixed
+            // 128/2 stride, so trunks never line up into a repeating grid.
+            const hash = Math.abs(Math.sin((xStart + x) * 12.9898) * 43758.5453);
+            const frac = hash - Math.floor(hash);
+            x += 46 + Math.round(frac * 30);
+        }
+
+        this.#worldContainer.background.addChild(wall);
+
+        return wall;
+    }
+
+    // A single standalone palm tree, bottom-anchored on a walkable ground
+    // tier - the foreground/midground specimens that stand directly on the
+    // grass in the reference art, layered in front of the distant jungle
+    // wall canopy instead of being part of it.
+    createPalmTree(x, groundLevel){
+        const tree = new Sprite(this.#assets.getTexture("palmtree0000"));
+        tree.x = x - tree.width / 2;
+        tree.y = groundLevel - tree.height + 4;
+        this.#worldContainer.background.addChild(tree);
+
+        return tree;
     }
 
     // Decorative vines draping down an exposed dirt cliff face, plus a

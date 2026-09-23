@@ -46,8 +46,18 @@ export default class SceneFactory{
     #createDecoration(){
         // Open riverside with sky and mountains first; from block 22 on the
         // jungle wall stands full height, canopy to ground - nothing floats.
+        // Canopy tops are still placed per column (they're designed to tile
+        // edge-to-edge), but the dark trunk backdrop behind them is one
+        // continuous piece spanning the whole run - see createJungleWall's
+        // comment for why a per-column rebuild used to show as a seam. The
+        // boss column (bossBlock) is excluded from that continuous span
+        // since the boss wall's own transparent-cut sprite sits there now.
+        // Backdrop+trunks first (so it renders behind), canopy tops after
+        // (so each crown sits in front, hiding the trunk tops that poke up
+        // underneath it - same layering the old per-column version had).
+        this.#platformsFactory.createJungleWall(this.#blockSize * 22, this.#blockSize * (this.#bossBlock - 22));
         for(let i = 22; i <= this.#bossBlock; i++){
-            this.#platformsFactory.createJungle(this.#blockSize * i, 0, 384, i === 22);
+            this.#platformsFactory.createJungle(this.#blockSize * i, 0, i === 22);
         }
     }
 
@@ -125,7 +135,34 @@ export default class SceneFactory{
             }
         }
 
+        // Trees before bushes so the bush strip's foliage sits in front of
+        // each tree's base (like undergrowth actually growing up around a
+        // trunk) instead of the trunk base cutting flat across the bushes.
+        this.#buildTrees(topmostY);
         this.#buildBushStrips(topmostY);
+    }
+
+    // Standalone palm trees scattered across exposed ground runs, matching
+    // the reference art's layered look: the distant jungle-wall canopy
+    // (createJungle) stays where it is, and individual trees stand in front
+    // of/around it directly on the walkable grass. Only the two grass tiers
+    // people actually run on (the main road and the canopy platforms) get
+    // them, spaced every 3rd exposed column so it reads as scattered growth
+    // rather than a second identical fence; a tiny x jitter (odd/even column)
+    // keeps them from lining up in a perfectly straight row.
+    #buildTrees(topmostY){
+        const validY = new Set([384, 276]);
+        const indexes = [...topmostY.keys()].sort((a, b) => a - b);
+
+        for (const i of indexes){
+            const y = topmostY.get(i);
+            if (!validY.has(y) || i % 3 !== 1){
+                continue;
+            }
+            const jitter = i % 2 === 0 ? 18 : -14;
+            const x = this.#blockSize * i + this.#blockSize / 2 + jitter;
+            this.#platformsFactory.createPalmTree(x, y);
+        }
     }
 
     // Groups exposed columns into contiguous runs (consecutive x-indices
@@ -169,8 +206,12 @@ export default class SceneFactory{
     }
 
     #createBossWall(){
-        this.#create([this.#bossBlock], 170, this.#platformsFactory.createBossWall);
-        this.#enemyFactory.createBoss(this.#blockSize * this.#bossBlock, 440);
+        // Wall y=260 pushes the sprite's base solidly into the ground tier
+        // (block 52 sits at y=720) instead of just grazing it, so there's no
+        // gap between the fortress and the floor. Door+guns are positioned
+        // independently via createBoss() below and aren't affected by this.
+        this.#create([this.#bossBlock], 260, this.#platformsFactory.createBossWall);
+        this.#enemyFactory.createBoss(this.#blockSize * this.#bossBlock, 310);
     }
 
     #createInteractive(){
