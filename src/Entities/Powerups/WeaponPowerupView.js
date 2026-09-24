@@ -16,7 +16,7 @@ export default class WeaponPowerupView extends Container{
         super();
 
         const view = new Sprite(assets.getTexture(textureName));
-        view.scale.set(2.7);
+        view.scale.set(1.35); // HD badge 48x32 -> ~65px wide
         this.addChild(view);
 
         this.#collisionBox.width = 50;

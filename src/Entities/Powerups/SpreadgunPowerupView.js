@@ -13,6 +13,7 @@ export default class SpreadgunPowerupView extends Container{
         super();
 
         const view = new Sprite(assets.getTexture("spreadgun0000"));
+        view.scale.set(1.35); // HD badge 48x32 -> ~65px wide
         this.addChild(view);
 
         this.#collisionBox.width = 50;

@@ -16,6 +16,7 @@ export default class PowerupView extends Container{
         super();
 
         this.#view = new Sprite(assets.getTexture("powerup0000"));
+        this.#view.scale.set(2); // HD pod 31x26 -> 62x52
         this.addChild(this.#view);
 
         this.#collisionBox.width = 50;
