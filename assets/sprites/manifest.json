@@ -2,6 +2,16 @@
   "sprites": [
     "boss0000",
     "bossdamage0000",
+    "bossdestruct0000",
+    "bossdestruct0001",
+    "bossdestruct0002",
+    "bossdestruct0003",
+    "bossdestruct0004",
+    "bossdestruct0005",
+    "bossdestruct0006",
+    "bossdestruct0007",
+    "bossdestruct0008",
+    "bossdestruct0009",
     "bossdoor0000",
     "bossdoor0001",
     "bossdoor0002",
@@ -109,6 +119,18 @@
       "bossdoor0000",
       "bossdoor0001",
       "bossdoor0002"
+    ],
+    "bossdestruct": [
+      "bossdestruct0000",
+      "bossdestruct0001",
+      "bossdestruct0002",
+      "bossdestruct0003",
+      "bossdestruct0004",
+      "bossdestruct0005",
+      "bossdestruct0006",
+      "bossdestruct0007",
+      "bossdestruct0008",
+      "bossdestruct0009"
     ],
     "explosion": [
       "explosion0000",
