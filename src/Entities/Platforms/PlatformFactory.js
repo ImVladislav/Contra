@@ -110,24 +110,26 @@ export default class PlatformFactory{
 
     createBossWall(x, y){
         const skin = new Sprite(this.#assets.getTexture("boss0000"));
-        const wallScale = 1.8;
+        const wallScaleX = 1.8;
+        const wallScaleY = 2.4; // native 364px -> ~753px = ~98% of the 768px window
         const tunedScale = 1.5; // #bossDamageSpots coordinates were placed by eye at this scale
-        skin.scale.x = wallScale;
-        skin.scale.y = wallScale;
+        skin.scale.x = wallScaleX;
+        skin.scale.y = wallScaleY;
 
         const view = new PlatformView(this.#platformWidth * 3, 768);
         view.addChild(skin);
 
         // Spots scale with the wall so the decals stay pinned to the same
-        // spots on the art instead of drifting when wallScale changes.
-        const spotFactor = wallScale / tunedScale;
+        // spots on the art instead of drifting when the wall scale changes.
+        const spotFactorX = wallScaleX / tunedScale;
+        const spotFactorY = wallScaleY / tunedScale;
         const damageSprites = this.#bossDamageSpots.map(spot => {
             const decal = new Sprite(this.#assets.getTexture("bossdamage0000"));
             decal.anchor.set(0.5);
-            decal.x = spot.x * spotFactor;
-            decal.y = spot.y * spotFactor;
+            decal.x = spot.x * spotFactorX;
+            decal.y = spot.y * spotFactorY;
             decal.rotation = spot.rotation;
-            decal.scale.set(spot.scale * spotFactor);
+            decal.scale.set(spot.scale * spotFactorY);
             decal.alpha = 0;
             view.addChild(decal);
             return decal;
@@ -135,7 +137,9 @@ export default class PlatformFactory{
 
         const platform = new Platform(view);
         platform.x = x-64;
-        platform.y = y-185;
+        // Base sits at the very bottom of the 768px window, not just at the
+        // ground line (720) - a few px lower so nothing pokes past the edge.
+        platform.y = y-280;
         platform.type = "box";
         this.#worldContainer.background.addChild(view);
 
