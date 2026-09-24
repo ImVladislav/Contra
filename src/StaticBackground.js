@@ -13,7 +13,7 @@ export default class StaticBackground extends Container{
         this.addChild(sky);
 
         for(let i=0; i<220; i++){
-            const star = this.#createStar();
+            const star = this.#createStar(assets);
             star.x = Math.random() * screenSize.width;
             star.y = Math.random() * 300;
         }
@@ -44,10 +44,13 @@ export default class StaticBackground extends Container{
         }
     }
 
-    #createStar(){
-        const star = new Graphics();
-        star.beginFill(0xdddddd);
-        star.drawRect(0,0,2,2);
+    // 10 star textures (star0000-0009) cut from the HD pack's starfield
+    // (Stage6-Space-1.png): tiny dots with a soft glow, from dim to bright.
+    #createStar(assets){
+        const index = Math.floor(Math.random() * 10);
+        const star = new Sprite(assets.getTexture("star000" + index));
+        star.scale.x = 2;
+        star.scale.y = 2;
         this.addChild(star);
 
         return star;

@@ -20,13 +20,16 @@ export default class BossGunView extends Container{
         const view = new Sprite(this.#assets.getTexture("bossgun0000"));
         view.scale.x = 1.4;
         view.scale.y = 1.4;
+        // Centered on (x, y) so the picture, the hitbox and the bullet
+        // spawn point all line up.
+        view.anchor.set(0.5);
 
         this.addChild(view);
 
         this.#view = view;
 
-        this.#collisionBox.width = 38;
-        this.#collisionBox.height = 18;
+        this.#collisionBox.width = 38 * 1.4;
+        this.#collisionBox.height = 18 * 1.4;
     }
 
     get collisionBox(){

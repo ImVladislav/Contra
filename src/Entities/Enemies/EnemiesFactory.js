@@ -83,12 +83,14 @@ export default class EnemiesFactory{
         this.#entities.push(boss);
 
         const gun1 = this.#createBossGun();
-        gun1.x = x - 56;
-        gun1.y = y;
+        // Gun centers sit in the two claw sockets on the wall art (wall
+        // native (22,163) and (76,163) at 1.8 x 2.4), barrel sticking left.
+        gun1.x = x - 33;
+        gun1.y = y + 61.2;
 
         const gun2 = this.#createBossGun();
-        gun2.x = x + 34;
-        gun2.y = y;
+        gun2.x = x + 62.4;
+        gun2.y = y + 61.2;
 
         return boss;
     }
