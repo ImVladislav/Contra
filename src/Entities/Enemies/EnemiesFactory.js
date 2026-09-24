@@ -71,8 +71,14 @@ export default class EnemiesFactory{
         this.#worldContainer.addChild(view);
 
         const boss = new Boss(view);
-        boss.x = x - 35;
-        boss.y = y + 95;
+        boss.x = x - 42.4;
+        boss.y = y + 207.6;
+
+        // Damage overlay sits at the bottom of the game layer: over the wall
+        // art, under the hero and bullets. Offset lines its door up with ours.
+        this.#worldContainer.addChildAt(view.damageView, 0);
+        view.damageView.x = boss.x - 5 * 1.8;
+        view.damageView.y = boss.y - 26 * 2.4;
 
         this.#entities.push(boss);
 
