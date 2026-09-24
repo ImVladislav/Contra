@@ -100,6 +100,9 @@
     "splash0002",
     "splash0003",
     "splash0004",
+    "bridgehd0000",
+    "bridgehd0001",
+    "bridgehd0002",
     "treeline0000",
     "trunk0000",
     "vine0000",
@@ -164,6 +167,11 @@
       "splash0002",
       "splash0003",
       "splash0004"
+    ],
+    "bridgehd": [
+      "bridgehd0000",
+      "bridgehd0001",
+      "bridgehd0002"
     ],
     "explosion": [
       "explosion0000",

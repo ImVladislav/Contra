@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite, TilingSprite } from "../../../lib/pixi.mjs";
+import { AnimatedSprite, Container, Graphics, Sprite, TilingSprite } from "../../../lib/pixi.mjs";
 import BridgePlatform from "./BridgePlatform.js";
 import Platform from "./Platform.js";
 import PlatformView from "./PlatformView.js";
@@ -155,13 +155,16 @@ export default class PlatformFactory{
         return platform;
     }
 
-    // Deck texture is a small repeating grated-road tile (cropped from the
-    // reference bridge art) tiled edge-to-edge across the full segment
-    // width via TilingSprite, so it reads as one continuous walkway instead
-    // of a single stretched/squashed image per segment.
     createBridge(x, y){
-        const texture = this.#assets.getTexture("bridge0000");
-        const skin = new TilingSprite(texture, this.#platformWidth, texture.height);
+        // HD bridge segment (from StageBridge1-3 of the HD pack): grated
+        // deck, girder with a red signal light and the V-truss hanging
+        // underneath. 96x64 art stretched to the 128px segment; the three
+        // frames only differ in the blinking red lights.
+        const skin = new AnimatedSprite(this.#assets.getAnimationTextures("bridgehd"));
+        skin.width = this.#platformWidth;
+        skin.height = 64 * this.#platformWidth / 96;
+        skin.animationSpeed = 1 / 12;
+        skin.play();
         const view = new PlatformView(this.#platformWidth, this.#platformHeight);
         view.addChild(skin);
 
