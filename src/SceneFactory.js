@@ -57,10 +57,9 @@ export default class SceneFactory{
         // Backdrop+trunks first (so it renders behind), canopy tops after
         // (so each crown sits in front, hiding the trunk tops that poke up
         // underneath it - same layering the old per-column version had).
-        this.#platformsFactory.createJungleWall(this.#blockSize * 22, this.#blockSize * (this.#bossBlock - 22));
-        for(let i = 22; i <= this.#bossBlock; i++){
-            this.#platformsFactory.createJungle(this.#blockSize * i, 0, i === 22);
-        }
+        // HD jungle backdrop (palms + dark jungle, from the HD pack's stage 1
+        // art) instead of the old repeated trunks + canopy tiles.
+        this.#platformsFactory.createJungleBackdrop(this.#blockSize * 22, 384, this.#waterSurfaceY);
     }
 
     // Vines/bushes on exposed dirt cliff faces - drawn after the ground

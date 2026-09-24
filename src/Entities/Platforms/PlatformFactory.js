@@ -1,4 +1,4 @@
-import { AnimatedSprite, Container, Graphics, Sprite, TilingSprite } from "../../../lib/pixi.mjs";
+import { AnimatedSprite, Container, Graphics, Rectangle, Sprite, Texture, TilingSprite } from "../../../lib/pixi.mjs";
 import BridgePlatform from "./BridgePlatform.js";
 import Platform from "./Platform.js";
 import PlatformView from "./PlatformView.js";
@@ -200,6 +200,58 @@ export default class PlatformFactory{
     // specimen planted in a row, instead of one flat tile stamped
     // identically every 128px. Bush undergrowth is only placed at the
     // entrance block (isEntrance), sitting right on the ground line.
+    // One continuous jungle backdrop cut from the HD pack's Stage1a.png: a
+    // wall of palms over dark jungle with undergrowth at the bottom, starting
+    // with the open jungle edge on the left (the second half is the same art
+    // mirrored, so the whole run has no repeating seam). 2x scale, bottom
+    // sitting on the main ground tier.
+    createJungleBackdrop(xStart, groundLevel, waterSurfaceY){
+        const texture = this.#assets.getTexture("junglebg0000");
+        const scale = 2;
+        const edge = 80; // left 80px of the art is the open jungle edge
+
+        // Below the main ground line, down to the river, the gaps between
+        // the lower ledges are filled with rows of jungle bushes: a dark
+        // jungle interior behind, then bush rows stacked from the top down,
+        // each lower row drawn over the one above it (it is closer) and the
+        // top row over the palm backdrop, getting brighter towards the
+        // water. Every row is shifted sideways so the same bush never lines
+        // up vertically.
+        const width = (texture.width - edge) * scale;
+        const deep = new Graphics();
+        deep.beginFill(0x030f0e);
+        deep.drawRect(xStart, groundLevel, width, waterSurfaceY - groundLevel);
+        deep.endFill();
+        this.#worldContainer.background.addChild(deep);
+
+        // Without the art's own bottom grass line (last 5 rows): where there
+        // is no real ground tier under it, it looked like a floating ledge.
+        const backdrop = new Sprite(new Texture(texture.baseTexture,
+            new Rectangle(texture.frame.x, texture.frame.y, texture.width, texture.height - 5)));
+        backdrop.scale.set(scale);
+        backdrop.x = xStart - edge * scale;
+        backdrop.y = groundLevel + 6 - backdrop.height;
+        this.#worldContainer.background.addChild(backdrop);
+
+        // Bush rows go over the backdrop's bottom edge too (top row first).
+        const bushTexture = this.#assets.getTexture("bushstrip0000");
+        const rowStep = 40;
+        const rows = Math.ceil((waterSurfaceY - groundLevel) / rowStep);
+        for (let r = 0; r < rows; r++){
+            const bottom = waterSurfaceY - (rows - 1 - r) * rowStep + 4;
+            const row = new TilingSprite(bushTexture, width, bushTexture.height);
+            row.x = xStart;
+            row.y = bottom - bushTexture.height;
+            row.tilePosition.x = -((r * 337) % bushTexture.width);
+            const t = rows > 1 ? r / (rows - 1) : 1; // 0 = top/far, 1 = bottom/near
+            const shade = Math.round(0x62 + (0xff - 0x62) * t);
+            row.tint = (shade << 16) | (Math.min(0xff, shade + 8) << 8) | shade;
+            this.#worldContainer.background.addChild(row);
+        }
+
+        return backdrop;
+    }
+
     createJungle(x, y, isEntrance = false){
         const wall = new Container();
         wall.x = x;
