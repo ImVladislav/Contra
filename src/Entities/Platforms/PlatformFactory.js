@@ -50,8 +50,17 @@ export default class PlatformFactory{
         return box;
     }
 
+    // HD water from the HD pack: the flat river blue of Stage1a.png with the
+    // pack's 4-frame sparkle animation (WaterFrame1-4.png) on top.
+    #createWaterSprite(){
+        const water = new AnimatedSprite(this.#assets.getAnimationTextures("waterhd"));
+        water.animationSpeed = 1 / 10;
+        water.play();
+        return water;
+    }
+
     createWater(x, y){
-        const water = new Sprite(this.#assets.getTexture("water0000"));
+        const water = this.#createWaterSprite();
         water.x = 0;
         water.y = -this.#platformHeight;
         water.width = this.#platformWidth;
@@ -59,7 +68,10 @@ export default class PlatformFactory{
 
         const view = new PlatformView(this.#platformWidth, this.#platformHeight);
         view.addChild(water);
-        view.addChild(this.#createWaterEdgeShading());
+        // No rim/shadow on the open river: it continues straight into the
+        // far shore's water on the background (treeline0000 is recoloured to
+        // the same blue), so a line here would just show the seam. The rim
+        // stays on createWaterFill, where the river meets island dirt.
 
         const platform = new Platform(view);
         platform.x = x;
@@ -73,15 +85,15 @@ export default class PlatformFactory{
 
     // Same water picture as createWater, but purely decorative (no
     // platform): covers the dirt of the islands below the water surface.
-    createWaterFill(x, y){
-        const water = new Sprite(this.#assets.getTexture("water0000"));
+    createWaterFill(x, y, width = this.#platformWidth){
+        const water = this.#createWaterSprite();
         water.x = x;
         water.y = y - this.#platformHeight;
-        water.width = this.#platformWidth;
+        water.width = width;
         water.height = 96;
         this.#worldContainer.foreground.addChild(water);
 
-        const shading = this.#createWaterEdgeShading();
+        const shading = this.#createWaterEdgeShading(width);
         shading.x = x;
         shading.y = y;
         this.#worldContainer.foreground.addChild(shading);
@@ -93,19 +105,19 @@ export default class PlatformFactory{
     // and equally "far away" - this line is what sells the ground sitting a
     // block closer to the camera than the open water in front of it, the
     // same way the reference art shades the waterline under each island.
-    #createWaterEdgeShading(){
+    #createWaterEdgeShading(width = this.#platformWidth){
         const shading = new Graphics();
         const top = -this.#platformHeight;
 
         shading.beginFill(0xe8fbff, 0.5);
-        shading.drawRect(0, top, this.#platformWidth, 2);
+        shading.drawRect(0, top, width, 2);
         shading.endFill();
 
         const bands = [0.32, 0.24, 0.17, 0.11, 0.06, 0.03];
         let by = top + 2;
         for (const alpha of bands){
             shading.beginFill(0x001019, alpha);
-            shading.drawRect(0, by, this.#platformWidth, 3);
+            shading.drawRect(0, by, width, 3);
             shading.endFill();
             by += 3;
         }

@@ -38,7 +38,9 @@ export default class StaticBackground extends Container{
         // through over open water or gaps in the ground.
         const treeWidth = 128;
         const treeHeight = 145;
-        const treeTop = 744 - 64 - treeHeight; // water surface on screen (world is shifted up 64px)
+        // The art's last 2 rows are transparent - drop them so its water
+        // meets the river surface exactly (no dark seam line between them).
+        const treeTop = 744 - 64 - (treeHeight - 2); // water surface on screen (world is shifted up 64px)
         for(let x = -treeWidth; x < screenSize.width + treeWidth; x += treeWidth){
             this.#createTreeline(assets, x, treeTop);
         }

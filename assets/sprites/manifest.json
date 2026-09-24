@@ -104,6 +104,10 @@
     "bridgehd0001",
     "bridgehd0002",
     "junglebg0000",
+    "waterhd0000",
+    "waterhd0001",
+    "waterhd0002",
+    "waterhd0003",
     "treeline0000",
     "trunk0000",
     "vine0000",
@@ -173,6 +177,12 @@
       "bridgehd0000",
       "bridgehd0001",
       "bridgehd0002"
+    ],
+    "waterhd": [
+      "waterhd0000",
+      "waterhd0001",
+      "waterhd0002",
+      "waterhd0003"
     ],
     "explosion": [
       "explosion0000",

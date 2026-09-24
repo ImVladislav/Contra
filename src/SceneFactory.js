@@ -274,10 +274,16 @@ export default class SceneFactory{
         // every cliff) is under water, not a dirt pillar standing in the
         // river. Visual only - no collision, the real water platforms above
         // are unchanged.
+        // ...but never past the right edge of the boss wall (its platform
+        // starts 64px left of the boss block and is 3 blocks wide): anything
+        // further right makes the level wider and lets the camera scroll
+        // past the wall.
+        const levelRight = this.#blockSize * this.#bossBlock - 64 + this.#blockSize * 3;
         const waterColumns = new Set(xIndexes);
-        for (let i = 0; i <= this.#bossBlock + 3; i++){
+        for (let i = 0; this.#blockSize * i < levelRight; i++){
             if (!waterColumns.has(i)){
-                this.#platformsFactory.createWaterFill(this.#blockSize * i, this.#waterY);
+                const x = this.#blockSize * i;
+                this.#platformsFactory.createWaterFill(x, this.#waterY, Math.min(this.#blockSize, levelRight - x));
             }
         }
     }

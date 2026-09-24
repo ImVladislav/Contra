@@ -169,7 +169,7 @@ export default class Game {
         const medalTexture = this.#assets.getTexture(this.#activeCharacterIndex == 1 ? "player_2_lives_medal" : "player_1_lives_medal");
         for (let i = 0; i < this.#lives; i++) {
             const icon = new Sprite(medalTexture);
-            icon.scale.set(2.5);
+            icon.scale.set(1.25); // HD medal 16x32 -> 20x40, same size as before
             icon.x = i * (icon.width + 8);
             this.#livesText.addChild(icon);
         }
