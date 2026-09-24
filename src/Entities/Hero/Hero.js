@@ -39,6 +39,10 @@ export default class Hero extends Entity{
     #invulnerabilityFrames = 0;
     #godMode = false;
     #isInWater = false;
+    // #isInWater is cleared every frame in update() and set again by the
+    // physics stay() call, so remember last frame's value to detect the
+    // actual moment of entering the water.
+    #wasInWater = false;
     #isDiving = false;
 
     #heroWeaponUnit;
@@ -75,6 +79,7 @@ export default class Hero extends Entity{
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
+        this.#wasInWater = this.#isInWater;
         this.#isInWater = false;
         this._view.update();
 
@@ -147,6 +152,9 @@ export default class Hero extends Entity{
     stay(platformY, isWater = false) {
 
         const enteredOrLeftWater = isWater != this.#isInWater;
+        if (isWater && !this.#wasInWater) {
+            this._view.showSplash();
+        }
         this.#isInWater = isWater;
         if (!isWater) {
             this.#isDiving = false;
@@ -238,8 +246,11 @@ export default class Hero extends Entity{
             if (this.#isDiving) {
                 this._view.showDive();
             }
+            else if (buttonContext.arrowUp) {
+                this._view.showSwim(buttonContext.arrowLeft || buttonContext.arrowRight ? "diag" : "up");
+            }
             else {
-                this._view.showSwim();
+                this._view.showSwim("forward");
             }
             return;
         }
@@ -281,6 +292,7 @@ export default class Hero extends Entity{
         this.#velocityY = 0;
         this.#state = States.Stay;
         this.#isInWater = false;
+        this.#wasInWater = false;
         this.#isDiving = false;
         this._view.reset();
         this.resuraction();

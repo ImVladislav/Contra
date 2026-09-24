@@ -6,7 +6,12 @@ export default class Powerup extends Entity{
     #flyY;
     #target;
 
-    #velocityX = 1.6;
+    // Speed relative to the SCREEN, not the world: it crosses the screen at
+    // the same calm pace whether the hero is standing or running (the camera
+    // scroll is added on top), so it never falls behind the left edge.
+    #velocityX = 2;
+    #screenX = 0;
+    #SCREEN_WIDTH = 1024;
     #bobAmplitude = 50;
 
     type = "powerupBox";
@@ -45,16 +50,34 @@ export default class Powerup extends Entity{
             if(this.x - this.#target.x < 512 + this.collisionBox.width){
                 this.isActive = true;
                 this._view.visible = true;
+                // Enter from just past the left edge of the screen and fly
+                // across it to the right (like the NES capsule), instead of
+                // popping into view in the middle.
+                this.#screenX = -this.collisionBox.width;
+                this.x = this.#screenLeft() + this.#screenX;
             }
             return;
         }
 
-        // Keeps flying and bobbing the whole time it is on screen - it used
-        // to move at 4px/frame, faster than the hero (3px/frame) could ever
-        // run, so it just flew away and was never actually catchable. This
-        // speed is slower than the hero so it can always be chased down.
-        this.x += this.#velocityX;
-        this.y = this.#flyY + Math.sin(this.x * 0.02) * this.#bobAmplitude;
+        // Shot down - stays where it exploded.
+        if(this.#velocityX == 0){
+            return;
+        }
+
+        this.#screenX += this.#velocityX;
+        this.x = this.#screenLeft() + this.#screenX;
+        this.y = this.#flyY + Math.sin(this.#screenX * 0.02) * this.#bobAmplitude;
+
+        // Flew off the right edge without being shot - remove it.
+        if(this.#screenX > this.#SCREEN_WIDTH + this.collisionBox.width){
+            this.dead();
+        }
+    }
+
+    // Left edge of the screen in world coordinates (the camera moves the
+    // world container, so ask it where screen x=0 is).
+    #screenLeft(){
+        return this._view.parent ? this._view.parent.toLocal({x: 0, y: 0}).x : this.#target.x - this.#SCREEN_WIDTH / 2;
     }
 
     damage(){

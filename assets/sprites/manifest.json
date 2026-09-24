@@ -91,6 +91,15 @@
     "star0007",
     "star0008",
     "star0009",
+    "swimfoam0000",
+    "swimfoam0001",
+    "swimfoam0002",
+    "swimfoam0003",
+    "splash0000",
+    "splash0001",
+    "splash0002",
+    "splash0003",
+    "splash0004",
     "treeline0000",
     "trunk0000",
     "vine0000",
@@ -142,6 +151,19 @@
       "bossdestruct0007",
       "bossdestruct0008",
       "bossdestruct0009"
+    ],
+    "swimfoam": [
+      "swimfoam0000",
+      "swimfoam0001",
+      "swimfoam0002",
+      "swimfoam0003"
+    ],
+    "splash": [
+      "splash0000",
+      "splash0001",
+      "splash0002",
+      "splash0003",
+      "splash0004"
     ],
     "explosion": [
       "explosion0000",

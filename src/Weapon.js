@@ -79,29 +79,21 @@ export default class Weapon{
         }
     }
 
-    // M - fast single-direction stream, straightforward upgrade over the
-    // default pea-shooter.
+    // M - automatic stream of tracers with a tiny bit of barrel jitter.
     #machineGunStrategy(bulletContext){
         this.#limit = 5;
-        this.#bulletFactory.createBullet(bulletContext);
+        this.#bulletFactory.createMachineGunBullet({
+            x: bulletContext.x,
+            y: bulletContext.y,
+            angle: bulletContext.angle + (Math.random() * 3 - 1.5),
+            type: bulletContext.type,
+        });
     }
 
-    // F - a short, wide burst that only reaches a few tiles (bullets carry
-    // their own lifespan so they burn out instead of flying off-screen).
+    // F - one big corkscrew fireball at a time, full range.
     #flameStrategy(bulletContext){
-        this.#limit = 14;
-        let angleShift = -8;
-        for(let i=0; i<3; i++){
-            const localBulletContext = {
-                x: bulletContext.x,
-                y: bulletContext.y,
-                angle: bulletContext.angle + angleShift,
-                type: bulletContext.type,
-            }
-
-            this.#bulletFactory.createFlameBullet(localBulletContext);
-            angleShift += 8;
-        }
+        this.#limit = 18;
+        this.#bulletFactory.createFlameBullet(bulletContext);
     }
 
     // L - a fast piercing beam that keeps going after hitting an enemy.
@@ -110,9 +102,10 @@ export default class Weapon{
         this.#bulletFactory.createLaserBullet(bulletContext);
     }
 
-    // R - the base gun, just firing much faster.
+    // R - fast glowing pellets: quicker fire rate and much faster bullets
+    // than the default gun.
     #rapidStrategy(bulletContext){
-        this.#limit = 3;
-        this.#bulletFactory.createBullet(bulletContext);
+        this.#limit = 6;
+        this.#bulletFactory.createRapidBullet(bulletContext);
     }
 }

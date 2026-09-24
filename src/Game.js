@@ -129,7 +129,6 @@ export default class Game {
         const powerupFactory = new PowerupsFactory(this.#entities, this.#assets, this.#worldContainer.game, this.#hero);
         const sceneFactory = new SceneFactory(this.#platforms, this.#entities, platformFactory, enemyFactory, this.#hero, powerupFactory);
         sceneFactory.createScene();
-        powerupFactory.createWeaponPowerup(220, 50, 4, "sprite_31"); // DEBUG TEST - REMOVE
 
         this.#camera = new Camera({
             target: this.#hero,
@@ -614,7 +613,6 @@ export default class Game {
 
         const powerups = this.#entities.filter(powerup => (powerup.type == "spreadgunPowerup" || powerup.type == "weaponPowerup") && entity.type == "hero");
         for(let powerup of powerups){
-            console.log("DEBUG powerup", JSON.stringify(powerup.hitBox), "hero", JSON.stringify(entity.hitBox), "overlap", Physics.isCheckAABB(powerup.hitBox, entity.hitBox));
             if(Physics.isCheckAABB(powerup.hitBox, entity.hitBox)){
                 powerup.damage();
                 // "barrier" (B) is not a weapon swap - it grants a temporary

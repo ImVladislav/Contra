@@ -2,7 +2,9 @@ import {
   AnimatedSprite,
   Container,
   Graphics,
+  Rectangle,
   Sprite,
+  Texture,
 } from "../../../lib/pixi.mjs";
 
 export default class HeroView extends Container {
@@ -35,7 +37,8 @@ export default class HeroView extends Container {
   };
 
   #swimAnimTime = 0;
-  #wake;
+  #swimBody;
+  #swimBodies = {};
   #bubbles = [];
   #submergeBody;
   #splash;
@@ -113,12 +116,17 @@ export default class HeroView extends Container {
   update() {
     if (this.#stm.currentState == "swim" || this.#stm.currentState == "dive") {
       this.#swimAnimTime += 0.12;
-      this.#stm.states[this.#stm.currentState].y =
-        Math.sin(this.#swimAnimTime) * 3;
     }
 
+    // Swimming: only the body bobs and sways (like treading water); the
+    // foam ring stays put on the water surface.
     if (this.#stm.currentState == "swim") {
-      this.#drawWake();
+      this.#swimBody.y = this.#swimBody.baseY + Math.sin(this.#swimAnimTime) * 2;
+      this.#swimBody.x = this.#swimBody.baseX + Math.sin(this.#swimAnimTime * 0.5) * 1.5;
+    }
+
+    if (this.#stm.currentState == "dive") {
+      this.#stm.states.dive.y = Math.sin(this.#swimAnimTime) * 3;
     }
 
     if (this.#stm.currentState == "dive") {
@@ -162,7 +170,8 @@ export default class HeroView extends Container {
 
   showStayUp() {
     this.#toState("stayUp");
-    this.#setBulletPointShift(18, -30);
+    // Muzzle of the leaned-back pose (see #getStayUpImage).
+    this.#setBulletPointShift(4, -21);
 
     this.#hitBox.width = 20;
     this.#hitBox.height = 90;
@@ -239,14 +248,52 @@ export default class HeroView extends Container {
     this.#hitBox.shiftY = 0;
   }
 
-  showSwim() {
+  // pose: "forward" | "up" | "diag" - the gun in the water points where
+  // the bullets actually go (same poses as standing / running, sunk 28px).
+  showSwim(pose = "forward") {
     this.#toState("swim");
-    this.#setBulletPointShift(55, 65);
+    for (const key in this.#swimBodies) {
+      this.#swimBodies[key].visible = key == pose;
+    }
+    this.#swimBody = this.#swimBodies[pose];
+
+    // Muzzle positions of the rotated poses (see #getSwimImage).
+    if (pose == "up") {
+      this.#setBulletPointShift(7, 5);
+    }
+    else if (pose == "diag") {
+      this.#setBulletPointShift(58, 17);
+    }
+    else {
+      // Body sits 28px lower than when standing -> gun muzzle at y ~48.
+      this.#setBulletPointShift(100, 48);
+    }
 
     this.#hitBox.width = 40;
     this.#hitBox.height = 30;
     this.#hitBox.shiftX = -5;
-    this.#hitBox.shiftY = 55;
+    this.#hitBox.shiftY = 36;
+  }
+
+  // Splash where the hero hits the water. Added to the parent layer so it
+  // stays at the entry point instead of following the hero.
+  showSplash() {
+    if (!this.parent) {
+      return;
+    }
+    const splash = new AnimatedSprite(this.#assets.getAnimationTextures("splash"));
+    splash.animationSpeed = 1 / 4;
+    splash.loop = false;
+    splash.alpha = 0.8;
+    // torso is ~x 33 in the hero sprite; splash art is centered at x 48,
+    // with its waterline at y 84; the water surface is at hero y + 66.
+    const torsoX = this.x + this.#rootNode.x + (33 - this.#rootNode.pivot.x) * this.#rootNode.scale.x;
+    splash.x = torsoX - 48;
+    splash.y = this.y + 66 - 84;
+    splash.onComplete = () => splash.removeFromParent();
+    // Behind the hero, so it never hides him.
+    this.parent.addChildAt(splash, this.parent.getChildIndex(this));
+    splash.play();
   }
 
   showDive() {
@@ -300,11 +347,35 @@ export default class HeroView extends Container {
     return view;
   }
 
+  // The only aim-up sprite holds the rifle at ~25°, but the shots go
+  // straight up. So the sprite is split at the waist: the legs stay as they
+  // are and the upper body leans back 66° around the waist until the rifle
+  // points straight up.
   #getStayUpImage() {
-    const view = new Sprite(this.#assets.getTexture("stayup0000"));
-    view.x += 2;
-    view.y -= 31;
-    return view;
+    const texture = this.#assets.getTexture("stayup0000");
+    const frame = texture.frame;
+    const waistY = 40;
+    const waistX = 16;
+
+    const container = new Container();
+
+    const legs = new Sprite(new Texture(texture.baseTexture,
+      new Rectangle(frame.x, frame.y + waistY, frame.width, frame.height - waistY)));
+    legs.y = waistY;
+
+    const upper = new Sprite(new Texture(texture.baseTexture,
+      new Rectangle(frame.x, frame.y, frame.width, waistY)));
+    upper.pivot.set(waistX, waistY);
+    upper.x = waistX;
+    upper.y = waistY;
+    upper.rotation = -66 * Math.PI / 180;
+
+    container.addChild(legs, upper);
+    // Feet on the ground (bottom row 94, same as stay0000 - the old -31
+    // offset left him floating) and hips lined up with the standing pose.
+    container.x = 14;
+    container.y = 0;
+    return container;
   }
 
   #getRunImage() {
@@ -389,47 +460,43 @@ export default class HeroView extends Container {
     return view;
   }
 
-  // Swim: the real hero sprite, sunk so only head and shoulders show
-  // above the water tiles (water renders on the foreground layer).
+  // Swim: the hero sprite sunk to the chest (head, shoulders and gun above
+  // the water - the water tiles on the foreground layer hide the rest), with
+  // an animated foam ring + trailing wake on the surface around the waist.
   #getSwimImage() {
     const container = new Container();
 
-    const body = new Sprite(this.#assets.getTexture("stay0000"));
-    body.y = 38;
+    // Every pose is pinned by its waist to the same point on the water
+    // surface (x 33, y 66), so the hero sits equally deep in each pose.
+    // The hero has no straight-up sprite, so the "up" pose is the aim-up
+    // sprite leaned back until the rifle points straight up, and the
+    // diagonal pose is tilted a little so the rifle matches the 45° shots.
+    const makeBody = (texture, waistX, waistY, rotation) => {
+      const body = new Sprite(this.#assets.getTexture(texture));
+      body.pivot.set(waistX, waistY);
+      body.rotation = rotation;
+      body.baseX = 33;
+      body.baseY = 66;
+      body.x = body.baseX;
+      body.y = body.baseY;
+      return body;
+    };
+    this.#swimBodies.forward = makeBody("stay0000", 33, 38, 0);
+    this.#swimBodies.up = makeBody("stayup0000", 16, 40, -66 * Math.PI / 180);
+    this.#swimBodies.diag = makeBody("runup0000", 29, 38, -15 * Math.PI / 180);
+    this.#swimBodies.up.visible = false;
+    this.#swimBodies.diag.visible = false;
+    this.#swimBody = this.#swimBodies.forward;
 
-    this.#wake = new Graphics();
+    // foam art: torso center at x 46, waterline at y 12 -> surface y ~64
+    const foam = new AnimatedSprite(this.#assets.getAnimationTextures("swimfoam"));
+    foam.animationSpeed = 1 / 8;
+    foam.x = 33 - 46;
+    foam.y = 52;
+    foam.play();
 
-    container.addChild(body, this.#wake);
+    container.addChild(this.#swimBodies.forward, this.#swimBodies.up, this.#swimBodies.diag, foam);
     return container;
-  }
-
-  // Ripples trailing behind the swimmer: a gently undulating waterline plus
-  // expanding ring ripples, instead of a single rigid straight bar.
-  #drawWake() {
-    const wake = this.#wake;
-    wake.clear();
-
-    const waterLineY = 58;
-    const centerX = 20; // roughly the swimmer's torso, not the sprite's left edge
-
-    wake.lineStyle(1.5, 0xd9f2ff, 0.5);
-    wake.moveTo(centerX - 24, waterLineY);
-    for (let x = centerX - 24; x <= centerX + 24; x += 3) {
-      const y =
-        waterLineY + Math.sin(this.#swimAnimTime * 2.2 + x * 0.35) * 1.4;
-      wake.lineTo(x, y);
-    }
-
-    for (let i = 0; i < 3; i++) {
-      const cycle = 2.2;
-      const phase = (this.#swimAnimTime * 0.9 + i * (cycle / 3)) % cycle;
-      const t = phase / cycle; // 0..1
-      const radiusX = 6 + t * 22;
-      const radiusY = radiusX * 0.32;
-
-      wake.lineStyle(1.2, 0xe8f8ff, 0.5 * (1 - t));
-      wake.drawEllipse(centerX, waterLineY, radiusX, radiusY);
-    }
   }
 
   // Dive: hero sinks below the surface (animated), then only bubbles give away the position.
@@ -437,7 +504,7 @@ export default class HeroView extends Container {
     const container = new Container();
 
     const submergeBody = new Sprite(this.#assets.getTexture("stay0000"));
-    submergeBody.y = 38;
+    submergeBody.y = 28; // same depth as the swim pose, so diving starts seamlessly
     submergeBody.visible = false;
     this.#submergeBody = submergeBody;
 
@@ -460,7 +527,7 @@ export default class HeroView extends Container {
     this.#diveTransition.progress = 0;
     this.#submergeBody.visible = true;
     this.#submergeBody.alpha = 1;
-    this.#submergeBody.y = 38;
+    this.#submergeBody.y = 28;
     this.#splash.clear();
   }
 
@@ -474,14 +541,14 @@ export default class HeroView extends Container {
     const p = Math.min(transition.progress, 1);
     const sinkT = p * p; // accelerate downward, like gravity pulling under
 
-    this.#submergeBody.y = 38 + sinkT * 50;
+    this.#submergeBody.y = 28 + sinkT * 60;
 
     this.#splash.clear();
     if (p < 1) {
       const radiusX = 8 + p * 24;
       const radiusY = radiusX * 0.3;
       this.#splash.lineStyle(2, 0xe8f8ff, 0.6 * (1 - p));
-      this.#splash.drawEllipse(20, 40, radiusX, radiusY);
+      this.#splash.drawEllipse(33, 64, radiusX, radiusY);
     }
 
     if (p >= 1) {
