@@ -3,6 +3,7 @@ import { AnimatedSprite, Container, Graphics, Sprite } from "../../../../lib/pix
 export default class TourelleView extends Container{
 
     #gunView;
+    #baseView;
 
     #collisionBox = {
         x:0,
@@ -19,18 +20,22 @@ export default class TourelleView extends Container{
         this.#assets = assets;
 
         const view = new Sprite(this.#assets.getTexture("tourelle0000"));
-        view.scale.x = 1.4;
-        view.scale.y = 1.4;
+        // HD turret: 64x64 base, 1.8x -> ~115px (old one was 83px * 1.4).
+        view.scale.x = 1.8;
+        view.scale.y = 1.8;
         view.x -= view.width/2;
         view.y -= view.height/2;
 
         this.addChild(view);
+        this.#baseView = view;
 
         this.#gunView = new Sprite(this.#assets.getTexture("tourellegun0000"));
-        this.#gunView.pivot.x = 22;
-        this.#gunView.pivot.y = 19;
-        this.#gunView.x = view.width/2 - 17;
-        this.#gunView.y = view.width/2 - 15;
+        // Gun head center is at (16,16) of its 48x32 texture; it rotates
+        // around the center of the 64x64 base (child of view -> same scale).
+        this.#gunView.pivot.x = 16;
+        this.#gunView.pivot.y = 16;
+        this.#gunView.x = 32;
+        this.#gunView.y = 32;
 
         this.#collisionBox.width = 128;
         this.#collisionBox.height = 128;
@@ -58,6 +63,19 @@ export default class TourelleView extends Container{
 
     showAndGetDeadAnimation(){
         this.#gunView.visible = false;
+
+        // Leave a wrecked plate behind. It goes into the parent layer (not
+        // this view) at the bottom, so it stays after the turret entity is
+        // removed and draws under the hero and bullets.
+        const wreck = new Sprite(this.#assets.getTexture("tourelledead0000"));
+        wreck.scale.x = this.#baseView.scale.x;
+        wreck.scale.y = this.#baseView.scale.y;
+        wreck.x = this.x + this.#baseView.x;
+        wreck.y = this.y + this.#baseView.y;
+        if(this.parent){
+            this.parent.addChildAt(wreck, 0);
+        }
+        this.#baseView.visible = false;
         this.#collisionBox.width = 0;
         this.#collisionBox.height = 0;
 
