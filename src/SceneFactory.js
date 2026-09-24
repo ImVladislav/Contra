@@ -9,6 +9,8 @@ export default class SceneFactory{
 
     #blockSize = 128;
     #bossBlock = 52;
+    #waterY = 768;
+    #waterSurfaceY = 744;
 
     // Ground/platform tiers are registered here first (x columns + y + the
     // factory method to build them) and only actually built afterwards, once
@@ -68,7 +70,7 @@ export default class SceneFactory{
         // The opening riverbank drops straight to water on its left edge -
         // dress that exposed dirt face with vines and a bush at the base,
         // like the reference shoreline shot.
-        this.#platformsFactory.createCliffVines(this.#blockSize * 1, 384, 768);
+        this.#platformsFactory.createCliffVines(this.#blockSize * 1, 384, this.#waterY);
     }
 
     // Jump-through rock tiers. Each tier fills the space below it with rock,
@@ -128,12 +130,38 @@ export default class SceneFactory{
             }
         }
 
-        for (const {xIndexes, y, createFunc} of this.#tierDefs){
+        // Every y a column has a tier at (for the edge dressing below).
+        const columnYs = new Map();
+        for (const {xIndexes, y} of this.#tierDefs){
             for (const i of xIndexes){
-                const x = this.#blockSize * i;
-                this.#platforms.push(createFunc.call(this.#platformsFactory, x, y));
+                if (!columnYs.has(i)){
+                    columnYs.set(i, []);
+                }
+                columnYs.get(i).push(y);
             }
         }
+
+        // Built from the highest tier down, so every lower tier is drawn in
+        // front of the higher ones behind it (it is closer to the camera),
+        // and each tier's edges are dressed right after it - before the
+        // tiers in front of it cover them.
+        const levels = [...new Set(this.#tierDefs.map(def => def.y))].sort((a, b) => a - b);
+        for (const level of levels){
+            const columns = new Set();
+            for (const {xIndexes, y, createFunc} of this.#tierDefs){
+                if (y !== level){
+                    continue;
+                }
+                for (const i of xIndexes){
+                    const x = this.#blockSize * i;
+                    this.#platforms.push(createFunc.call(this.#platformsFactory, x, y));
+                    columns.add(i);
+                }
+            }
+            this.#dressTierEdges(level, columns, columnYs);
+        }
+
+        this.#buildWaterlineBushes(columnYs);
 
         // Trees before bushes so the bush strip's foliage sits in front of
         // each tree's base (like undergrowth actually growing up around a
@@ -200,9 +228,59 @@ export default class SceneFactory{
         flush();
     }
 
+    // Where a run of blocks ends, its cliff side gets a hanging grass/vine
+    // drape, and if a higher tier's dirt is behind it, a soft shadow falls
+    // on that dirt - so the front block reads as a separate island standing
+    // in front of the one behind instead of one flat merged dirt wall.
+    #dressTierEdges(y, columns, columnYs){
+        const sorted = [...columns].sort((a, b) => a - b);
+        for (let k = 0; k < sorted.length; k++){
+            const i = sorted[k];
+            const isRunStart = !columns.has(i - 1);
+            const isRunEnd = !columns.has(i + 1);
+            for (const [side, isEdge] of [[-1, isRunStart], [1, isRunEnd]]){
+                if (!isEdge || i + side === this.#bossBlock || i === this.#bossBlock){
+                    continue;
+                }
+                const edgeX = this.#blockSize * (side < 0 ? i : i + 1);
+                const neighborYs = columnYs.get(i + side) || [];
+                if (neighborYs.some(ny => ny < y)){
+                    this.#platformsFactory.createTierEdgeShadow(edgeX, y, side, this.#waterSurfaceY);
+                }
+                this.#platformsFactory.createEdgeVine(edgeX, y, side);
+            }
+        }
+    }
+
+    // A fringe of shore bushes where every island meets the river, like the
+    // leafy bottom edge of the islands in the reference art.
+    #buildWaterlineBushes(columnYs){
+        for (const i of [...columnYs.keys()].sort((a, b) => a - b)){
+            if (i >= this.#bossBlock - 1){
+                continue;
+            }
+            for (let k = 0; k < 2; k++){
+                const jitter = ((i * 7 + k * 3) % 5) * 6 - 12;
+                this.#platformsFactory.createShoreBush(this.#blockSize * i + k * 64 + jitter, this.#waterSurfaceY);
+            }
+        }
+    }
+
     #createWater(){
         let xIndexes = [0,1,2,3,4,5,6,7,8, 11,12,13,14,15,16,17,18,19,20,21,22,23,24, 28,29,30,31, 38, 41, 44];
-        this.#create(xIndexes, 768, this.#platformsFactory.createWater);
+        this.#create(xIndexes, this.#waterY, this.#platformsFactory.createWater);
+
+        // Everywhere else the river still runs in front of the islands'
+        // feet: dirt below the water surface (riverbank steps, the bottom of
+        // every cliff) is under water, not a dirt pillar standing in the
+        // river. Visual only - no collision, the real water platforms above
+        // are unchanged.
+        const waterColumns = new Set(xIndexes);
+        for (let i = 0; i <= this.#bossBlock + 3; i++){
+            if (!waterColumns.has(i)){
+                this.#platformsFactory.createWaterFill(this.#blockSize * i, this.#waterY);
+            }
+        }
     }
 
     #createBossWall(){

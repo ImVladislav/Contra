@@ -71,6 +71,22 @@ export default class PlatformFactory{
         return platform;
     }
 
+    // Same water picture as createWater, but purely decorative (no
+    // platform): covers the dirt of the islands below the water surface.
+    createWaterFill(x, y){
+        const water = new Sprite(this.#assets.getTexture("water0000"));
+        water.x = x;
+        water.y = y - this.#platformHeight;
+        water.width = this.#platformWidth;
+        water.height = 96;
+        this.#worldContainer.foreground.addChild(water);
+
+        const shading = this.#createWaterEdgeShading();
+        shading.x = x;
+        shading.y = y;
+        this.#worldContainer.foreground.addChild(shading);
+    }
+
     // Depth cue where solid ground meets the water: a bright rim of light
     // right at the surface, fading into a soft shadow the ground casts onto
     // the water below it. Without this every tier of ground reads as flat
@@ -286,6 +302,45 @@ export default class PlatformFactory{
     // small bush clump at the waterline - for the left edge of a ground
     // run that drops straight to water (matches the reference art: grass
     // on top, vines clinging to the cliff, bushes at the base).
+    // Soft shadow a front island casts sideways onto the dirt of the higher
+    // tier behind it: dark at the edge, fading out over ~18px.
+    createTierEdgeShadow(edgeX, groundLevel, side, waterSurfaceY){
+        const shadow = new Graphics();
+        const bands = [0.55, 0.42, 0.3, 0.2, 0.12, 0.06];
+        const top = groundLevel + 6;
+        const height = waterSurfaceY - top;
+        bands.forEach((alpha, k) => {
+            shadow.beginFill(0x120800, alpha);
+            // side -1: shadow falls on the left of the edge, +1: on the right
+            const x = side < 0 ? edgeX - (k + 1) * 3 : edgeX + k * 3;
+            shadow.drawRect(x, top, 3, height);
+            shadow.endFill();
+        });
+        this.#worldContainer.background.addChild(shadow);
+    }
+
+    // Grass drape + hanging vines over a block's exposed cliff side.
+    createEdgeVine(edgeX, groundLevel, side){
+        const vine = new Sprite(this.#assets.getTexture("vine0000"));
+        vine.y = groundLevel - 12;
+        if (side < 0){
+            vine.x = edgeX - 6;
+        }
+        else {
+            vine.scale.x = -1;
+            vine.x = edgeX + 6;
+        }
+        vine.tint = this.#getDepthTint(groundLevel);
+        this.#worldContainer.background.addChild(vine);
+    }
+
+    createShoreBush(x, waterSurfaceY){
+        const bush = new Sprite(this.#assets.getTexture("shorebush0000"));
+        bush.x = x - 16;
+        bush.y = waterSurfaceY - 42;
+        this.#worldContainer.background.addChild(bush);
+    }
+
     createCliffVines(x, groundLevel, waterLevel){
         const vine = new Sprite(this.#assets.getTexture("vine0000"));
         vine.x = x - 6;
@@ -353,8 +408,10 @@ export default class PlatformFactory{
         const nearY = 720;
         const farY = 276;
         const t = Math.min(Math.max((y - farY) / (nearY - farY), 0), 1);
-        const hazeAmount = (1 - t) * 0.35;
-        const haze = { r: 0x3a, g: 0x4a, b: 0x58 };
+        // Stronger than before so tiers stacked in front of each other read
+        // as separate layers (higher = further back = hazier).
+        const hazeAmount = (1 - t) * 0.55;
+        const haze = { r: 0x26, g: 0x30, b: 0x3c }; // darker + cooler: further back
 
         const r = Math.round(0xff * (1 - hazeAmount) + haze.r * hazeAmount);
         const g = Math.round(0xff * (1 - hazeAmount) + haze.g * hazeAmount);

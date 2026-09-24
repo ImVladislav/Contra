@@ -109,6 +109,10 @@ export default class Game {
         this.#entities = [];
 
         this.#worldContainer = new World();
+        // Whole level drawn 64px higher on screen: a much wider band of river
+        // shows under the islands (88px instead of 24) while the level layout
+        // itself stays exactly the same.
+        this.#worldContainer.y = -64;
         this.#pixiApp.stage.addChild(this.#worldContainer);
         this.#bulletFactory = new BulletFactory(this.#worldContainer.game, this.#entities);
 

@@ -38,7 +38,7 @@ export default class StaticBackground extends Container{
         // through over open water or gaps in the ground.
         const treeWidth = 128;
         const treeHeight = 145;
-        const treeTop = 744 - treeHeight;
+        const treeTop = 744 - 64 - treeHeight; // water surface on screen (world is shifted up 64px)
         for(let x = -treeWidth; x < screenSize.width + treeWidth; x += treeWidth){
             this.#createTreeline(assets, x, treeTop);
         }
