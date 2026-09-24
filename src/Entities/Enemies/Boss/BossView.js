@@ -20,14 +20,14 @@ export default class BossView extends Container{
         const view = new AnimatedSprite(assets.getAnimationTextures("bossdoor"));
         view.animationSpeed = 1/10;
         view.scale.x = 1.6;
-        view.scale.y = 1.6;
+        view.scale.y = 1.5;
         view.play();
 
         this.addChild(view);
         this.#view = view;
 
         this.#collisionBox.width = 73;
-        this.#collisionBox.height = 94;
+        this.#collisionBox.height = 123;
 
     }
 
