@@ -50,6 +50,8 @@ export default class HeroView extends Container {
 
   #rootNode;
   #assets;
+  #parachute;
+  #parachuteTime = 0;
 
   constructor(assets) {
     super();
@@ -113,7 +115,51 @@ export default class HeroView extends Container {
     }
   }
 
+  // Olive military canopy with suspension lines down to the shoulders.
+  showParachute(isVisible) {
+    if (!this.#parachute) {
+      const chute = new Container();
+      const g = new Graphics();
+      const cx = 33;
+      // lines
+      g.lineStyle(1.5, 0x2a2a1e, 0.9);
+      for (const tx of [-22, 0, 66, 88]) {
+        g.moveTo(tx, -58);
+        g.lineTo(cx + (tx < cx ? -6 : 6), 22);
+      }
+      // canopy
+      g.lineStyle(2, 0x1c2410, 1);
+      g.beginFill(0x5d6b34);
+      g.moveTo(-28, -56);
+      g.bezierCurveTo(-24, -118, 90, -118, 94, -56);
+      g.lineTo(-28, -56);
+      g.endFill();
+      // panel seams + light stripe
+      g.lineStyle(1.5, 0x3f4a22, 1);
+      for (const sx of [5, 33, 61]) {
+        g.moveTo(sx, -56);
+        g.lineTo(cx + (sx - cx) * 0.6, -100);
+      }
+      g.lineStyle(0);
+      g.beginFill(0x8b9a55, 0.8);
+      g.drawEllipse(18, -92, 18, 5);
+      g.endFill();
+      chute.addChild(g);
+      chute.pivot.set(cx, 22);
+      chute.x = cx;
+      chute.y = 22;
+      this.#rootNode.addChildAt(chute, 0);
+      this.#parachute = chute;
+    }
+    this.#parachute.visible = isVisible;
+  }
+
   update() {
+    if (this.#parachute?.visible) {
+      this.#parachuteTime += 0.05;
+      this.#parachute.rotation = Math.sin(this.#parachuteTime) * 0.06;
+    }
+
     if (this.#stm.currentState == "swim" || this.#stm.currentState == "dive") {
       this.#swimAnimTime += 0.12;
     }

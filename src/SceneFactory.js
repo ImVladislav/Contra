@@ -29,6 +29,7 @@ export default class SceneFactory{
     }
 
     createScene(){
+        this.#createDistantWater();
         this.#createDecoration();
         this.#registerPlatforms();
         this.#registerGround();
@@ -262,6 +263,16 @@ export default class SceneFactory{
                 const jitter = ((i * 7 + k * 3) % 5) * 6 - 12;
                 this.#platformsFactory.createShoreBush(this.#blockSize * i + k * 64 + jitter, this.#waterSurfaceY);
             }
+        }
+    }
+
+    // The open water between the river and the far shore on the static
+    // background. It is part of the level (behind every island), so it
+    // scrolls with the river - one continuous water surface when running.
+    #createDistantWater(){
+        const levelRight = this.#blockSize * this.#bossBlock - 64 + this.#blockSize * 3;
+        for (let x = 0; x < levelRight; x += this.#blockSize){
+            this.#platformsFactory.createDistantWater(x, this.#waterSurfaceY - 58, Math.min(this.#blockSize, levelRight - x));
         }
     }
 

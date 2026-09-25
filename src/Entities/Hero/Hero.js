@@ -43,6 +43,9 @@ export default class Hero extends Entity{
     // physics stay() call, so remember last frame's value to detect the
     // actual moment of entering the water.
     #wasInWater = false;
+    // Opening drop of the mission: slow descent under a parachute until
+    // the first landing.
+    #isParachuting = false;
     #isDiving = false;
 
     #heroWeaponUnit;
@@ -96,14 +99,32 @@ export default class Hero extends Entity{
 
         if (this.#velocityY > 0) {
             if (!(this.#state == States.Jump || this.#state == States.FlyDown)) {
-                this._view.showFall();
+                // Hanging under the canopy: upright pose, not the tumble.
+                if (this.#isParachuting) {
+                    this._view.showStay();
+                }
+                else {
+                    this._view.showFall();
+                }
                 this.isFall = true;
             }
             this.#state = States.FlyDown;
         }
 
         this.#velocityY += this.#GRAVITY_FORCE;
+        if (this.#isParachuting && this.#velocityY > 2.2) {
+            this.#velocityY = 2.2;
+        }
         this.y += this.#velocityY;
+    }
+
+    deployParachute() {
+        this.#isParachuting = true;
+        // Already "in the air": keeps the upright pose until landing (the
+        // controls don't switch the view while falling).
+        this.#state = States.FlyDown;
+        this._view.showStay();
+        this._view.showParachute(true);
     }
 
     get isInvulnerable() {
@@ -150,6 +171,10 @@ export default class Hero extends Entity{
     }
 
     stay(platformY, isWater = false) {
+        if (this.#isParachuting) {
+            this.#isParachuting = false;
+            this._view.showParachute(false);
+        }
 
         const enteredOrLeftWater = isWater != this.#isInWater;
         if (isWater && !this.#wasInWater) {
@@ -286,6 +311,8 @@ export default class Hero extends Entity{
 
     reset(){
         this.#GRAVITY_FORCE = 0.2;
+        this.#isParachuting = false;
+        this._view.showParachute(false);
         this.#isDying = false;
         this.#movement.x = 0;
         this.#velocityX = 0;

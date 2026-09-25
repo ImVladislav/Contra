@@ -59,6 +59,17 @@ export default class PlatformFactory{
         return water;
     }
 
+    // Decorative water behind the islands (no platform), see
+    // SceneFactory #createDistantWater.
+    createDistantWater(x, top, width){
+        const water = this.#createWaterSprite();
+        water.x = x;
+        water.y = top;
+        water.width = width;
+        water.height = 96;
+        this.#worldContainer.background.addChild(water);
+    }
+
     createWater(x, y){
         const water = this.#createWaterSprite();
         water.x = 0;

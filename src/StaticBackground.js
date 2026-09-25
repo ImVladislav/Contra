@@ -36,11 +36,15 @@ export default class StaticBackground extends Container{
         // the real water line (y = 744) so it reads as a hazy far shore seen
         // across the water, low down - behind the dirt cliffs, only peeking
         // through over open water or gaps in the ground.
+        // treeline0000 is only the far shore now (trees + sand, no water):
+        // the water in front of it is part of the scrolling level
+        // (SceneFactory #createDistantWater), so it moves together with the
+        // river instead of standing still on screen. The shore sits right on
+        // top of that water band (58px above the river surface).
         const treeWidth = 128;
-        const treeHeight = 145;
-        // The art's last 2 rows are transparent - drop them so its water
-        // meets the river surface exactly (no dark seam line between them).
-        const treeTop = 744 - 64 - (treeHeight - 2); // water surface on screen (world is shifted up 64px)
+        const treeHeight = 85;
+        const farWaterTop = 744 - 64 - 58; // screen y (world is shifted up 64px)
+        const treeTop = farWaterTop - treeHeight;
         for(let x = -treeWidth; x < screenSize.width + treeWidth; x += treeWidth){
             this.#createTreeline(assets, x, treeTop);
         }
