@@ -38,6 +38,8 @@ export default class Game {
     #statusText;
     #activeCharacterIndex = 0;
     #endingTick;
+    #seaDroneTick;
+    #seaDroneCleanup;
 
     keyboardProcessor;
 
@@ -149,6 +151,8 @@ export default class Game {
         this.#weapon = new Weapon(this.#bulletFactory);
         this.#weapon.setWeapon(1);
 
+        this.#spawnSeaDrone();
+
         this.#statusText?.destroy({ children: true });
         this.#statusText = undefined;
 
@@ -182,6 +186,7 @@ export default class Game {
 
     #returnToMainMenu() {
         this.#stopEndingScene();
+        this.#stopSeaDrone();
         if (this.#creditsTick) {
             this.#pixiApp.ticker.remove(this.#creditsTick);
             this.#creditsTick = undefined;
@@ -658,19 +663,239 @@ export default class Game {
         }, 3000);
     }
 
+    // Mission opening: an unmanned armed sea drone (cut out of the reference
+    // render: grey hull, turret, launchers, tube floats) runs along the river
+    // past the landing zone and is gone once it leaves the screen on the right.
+    // The water contact is simulated rather than baked into the art: a bow
+    // wave with flying spray, foam slipping along the hull, churned water and
+    // a rooster tail at the stern, a widening wake left on the water and a
+    // dim reflection under the hull.
+    #spawnSeaDrone() {
+        this.#stopSeaDrone();
+
+        const layer = this.#worldContainer.foreground;
+        const waterline = 790;                        // in the river band, in front of the islands
+        const speed = 3.6;
+        // art: 300x81, bottom row = waterline; hull meets the water between
+        // x 6 (stern) and x 246 (bow stem), the stem rises to x 268 at row 68
+        const STERN = 6, BOW = 246;
+        const texture = this.#assets.getTexture("seadrone0000");
+
+        const back = new Graphics();                  // wake + reflection-side foam, behind the hull
+        const reflection = new Sprite(texture);
+        reflection.anchor.set(0, 1);
+        reflection.scale.y = -0.32;
+        reflection.alpha = 0.16;
+        reflection.tint = 0x0b2a44;
+        const drone = new Sprite(texture);
+        drone.anchor.set(0, 1);
+        const front = new Graphics();                 // waterline foam, bow wave, spray
+        layer.addChild(back, reflection, drone, front);
+
+        drone.x = -this.#worldContainer.x - drone.width - 40;
+        drone.y = waterline;
+
+        const rand = (min, max) => min + Math.random() * (max - min);
+        const foam = [];      // flat foam patches lying on the water (world-fixed)
+        const rings = [];     // expanding wake ripples
+        const drops = [];     // spray droplets under gravity
+        let time = 0;
+        let running = true;
+        let ringTimer = 0;
+
+        const addFoam = (x, y, r, life, vx = 0, vy = 0, a = rand(0.4, 0.8)) => foam.push({ x, y, r, grow: rand(0.06, 0.22), life, max: life, vx, vy, a });
+        // stable per-world-x noise, so the foam pattern on the seam drifts aft instead of flickering
+        const hash = (n) => { const v = Math.sin(n * 127.1) * 43758.5453; return v - Math.floor(v); };
+        const addDrop = (x, y, vx, vy, r, life) => drops.push({ x, y, vx, vy, r, life, max: life });
+
+        const cleanup = () => {
+            for (const obj of [back, reflection, drone, front]) {
+                if (!obj.destroyed) { obj.destroy(); }
+            }
+        };
+
+        this.#seaDroneTick = (delta) => {
+            if (this.#menuMode != "playing") {
+                return;                               // everything freezes while paused
+            }
+            time += delta;
+            const d = Math.min(delta, 2);
+
+            if (running) {
+                // heave + a slow pitch: the bow lifts on the swell
+                const pitch = Math.sin(time * 0.07) * 0.007 + Math.sin(time * 0.19) * 0.003;
+                drone.x += speed * d;
+                drone.y = waterline + Math.sin(time * 0.11) * 1.2;
+                drone.rotation = -pitch;
+                reflection.x = drone.x;
+                reflection.y = waterline + 1;
+                reflection.scale.x = 1 + Math.sin(time * 0.3) * 0.01;
+                reflection.alpha = 0.13 + Math.sin(time * 0.23) * 0.03;
+
+                const bowX = drone.x + BOW;
+                const sternX = drone.x + STERN;
+                const bowLift = Math.max(0, pitch) * 600;     // 0..~6px: bigger bow wave on the plunge
+
+                // bow: water thrown up and back in a fan, plus fine mist
+                for (let i = 0; i < 5; i++) {
+                    addDrop(bowX + rand(-8, 6), waterline - rand(0, 4),
+                        speed + rand(-2.4, 1.2), -rand(1.6, 4.2) - bowLift * 0.15, rand(0.8, 2.1), rand(16, 30));
+                }
+                if (Math.random() < 0.6) {
+                    addDrop(bowX + rand(-4, 8), waterline - rand(4, 10), speed + rand(-1, 1), -rand(0.3, 1), rand(2.5, 4.5), rand(10, 18));
+                }
+                // foam peeling off along the hull (stays in the world, so it slides aft)
+                for (let i = 0; i < 4; i++) {
+                    const t = Math.random();
+                    const along = STERN + (BOW - STERN) * (1 - t * t);   // denser towards the bow
+                    addFoam(drone.x + along, waterline + rand(-1, 2), rand(1.2, 2.6), rand(14, 26));
+                }
+                // stern: churned white water and a low rooster tail
+                for (let i = 0; i < 3; i++) {
+                    // the wake spreads out and breaks up the further it is behind the boat
+                    addFoam(sternX - rand(0, 16), waterline + rand(-1, 3), rand(1.5, 4), rand(50, 120),
+                        rand(0.3, 1.4), rand(-0.03, 0.06), rand(0.25, 0.6));
+                }
+                for (let i = 0; i < 3; i++) {
+                    addDrop(sternX - rand(0, 6), waterline - rand(0, 3), rand(0.4, 2.2), -rand(1.2, 3.2), rand(0.8, 1.8), rand(18, 30));
+                }
+                // the diverging wake: a ripple every few frames at the stern
+                ringTimer -= d;
+                if (ringTimer <= 0) {
+                    ringTimer = 5;
+                    rings.push({ x: sternX - 4, y: waterline + rand(1, 4), r: 10, life: 90, max: 90 });
+                }
+
+                const screenRight = -this.#worldContainer.x + this.#pixiApp.screen.width;
+                if (drone.x > screenRight + 40) {
+                    running = false;                  // hull gone - let the wake die out
+                    drone.visible = false;
+                    reflection.visible = false;
+                }
+            }
+
+            // ---- simulate ----
+            for (let i = foam.length - 1; i >= 0; i--) {
+                const f = foam[i];
+                f.life -= d;
+                f.x += f.vx * d;
+                f.vx *= 0.96;
+                f.y += f.vy * d;
+                f.r += f.grow * d;
+                if (f.life <= 0) { foam.splice(i, 1); }
+            }
+            for (let i = rings.length - 1; i >= 0; i--) {
+                const r = rings[i];
+                r.life -= d;
+                r.r += 0.9 * d;
+                if (r.life <= 0) { rings.splice(i, 1); }
+            }
+            for (let i = drops.length - 1; i >= 0; i--) {
+                const p = drops[i];
+                p.life -= d;
+                p.vy += 0.22 * d;
+                p.vx *= 0.985;
+                p.x += p.vx * d;
+                p.y += p.vy * d;
+                if (p.y >= waterline + 1 && p.vy > 0) {
+                    // droplet lands: leaves a speck of foam and a tiny ring
+                    addFoam(p.x, waterline + rand(0, 2), p.r * 0.8, rand(10, 18));
+                    if (p.r > 1.6) { rings.push({ x: p.x, y: waterline + 1, r: 2, life: 16, max: 16 }); }
+                    drops.splice(i, 1);
+                }
+                else if (p.life <= 0) { drops.splice(i, 1); }
+            }
+
+            // ---- draw ----
+            back.clear();
+            for (const r of rings) {
+                const k = r.life / r.max;
+                back.lineStyle(1.3, 0xd9f1ff, 0.55 * k * k);
+                back.drawEllipse(r.x, r.y, r.r, r.r * 0.16);
+            }
+            back.lineStyle(0);
+            for (const f of foam) {
+                const k = f.life / f.max;
+                // fresh foam is white, old foam turns into pale turquoise streaks
+                back.beginFill(k > 0.5 ? 0xf4fbff : 0xbfe8f8, f.a * k);
+                back.drawEllipse(f.x, f.y, f.r * 1.6, f.r * 0.45);
+                back.endFill();
+            }
+
+            front.clear();
+            if (running) {
+                const bowX = drone.x + BOW;
+                const surge = 8 + Math.sin(time * 0.5) * 1.5 + Math.max(0, Math.sin(time * 0.07)) * 4;
+                // bow wave: a white mound pushed ahead of the stem
+                front.beginFill(0xdff3ff, 0.85);
+                front.moveTo(bowX - 34, waterline + 2);
+                front.quadraticCurveTo(bowX - 10, waterline - surge * 0.9, bowX + 6, waterline - surge);
+                front.quadraticCurveTo(bowX + 16, waterline - surge * 0.4, bowX + 20, waterline + 2);
+                front.closePath();
+                front.endFill();
+                front.beginFill(0xffffff, 0.9);
+                front.drawEllipse(bowX + 2, waterline - surge + 1.5, 6, 2);
+                front.endFill();
+                // broken, bubbling seam where the hull meets the water
+                const base = Math.floor(drone.x / 4);
+                for (let i = Math.ceil(STERN / 4); i < BOW / 4; i++) {
+                    const n = hash(base + i);
+                    const toBow = i * 4 / BOW;                    // more froth towards the bow
+                    if (n < 0.35 - toBow * 0.3) { continue; }
+                    const r = 1.2 + hash(base + i + 0.5) * 2.2 + toBow * 1.2;
+                    front.beginFill(0xf0faff, 0.35 + n * 0.5);
+                    front.drawEllipse((base + i) * 4, waterline + 0.5 + (hash(base + i + 0.25) - 0.5) * 2.2, r * 1.3, r * 0.5);
+                    front.endFill();
+                }
+                // bow "moustache": the sheet of water peeling back along the hull from the stem
+                front.beginFill(0xe4f5ff, 0.5);
+                front.moveTo(bowX + 4, waterline - surge * 0.8);
+                front.quadraticCurveTo(bowX - 30, waterline - surge * 0.75 - 3, bowX - 80, waterline + 1);
+                front.lineTo(bowX - 10, waterline + 2);
+                front.closePath();
+                front.endFill();
+            }
+            for (const p of drops) {
+                const k = Math.min(1, p.life / p.max * 1.5);
+                front.beginFill(p.r > 2.4 ? 0xe8f6ff : 0xffffff, (p.r > 2.4 ? 0.35 : 0.9) * k);
+                front.drawCircle(p.x, p.y, p.r);
+                front.endFill();
+            }
+
+            if (!running && foam.length == 0 && rings.length == 0 && drops.length == 0) {
+                this.#stopSeaDrone();
+            }
+        };
+        this.#seaDroneCleanup = cleanup;
+        this.#pixiApp.ticker.add(this.#seaDroneTick);
+    }
+
+    #stopSeaDrone() {
+        if (this.#seaDroneTick) {
+            this.#pixiApp.ticker.remove(this.#seaDroneTick);
+            this.#seaDroneTick = undefined;
+        }
+        if (this.#seaDroneCleanup) {
+            this.#seaDroneCleanup();
+            this.#seaDroneCleanup = undefined;
+        }
+    }
+
     // ---- Ending --------------------------------------------------------------
-    // The bunker gate is blown open: the Dictator walks out of the hole,
-    // the hero walks up to him, he drops to his knees with his hands up, the
-    // hero pats him on the head - then fade out and the credits roll.
+    // The bunker gate is blown open: the Dictator walks out of the hole and
+    // drops to his knee with his hands up, the hero walks right up to him -
+    // one shot point-blank, his head flies off and the body falls - then fade
+    // out and the credits roll.
     #startEnding() {
         this.#menuMode = "cutscene";
         this.keyboardProcessor.releaseAll();
         this.#weapon?.stopFire();
         this.#heroIntroOverlay?.remove();
 
-        // no bullets frozen in the air during the scene
+        // No bullets frozen in the air and no killed enemies left standing
+        // (the game loop that normally removes them is paused for the scene).
         this.#entities = this.#entities.filter((entity) => {
-            if (entity.type == "heroBullet" || entity.type == "enemyBullet") {
+            if (entity.type == "heroBullet" || entity.type == "enemyBullet" || (entity.isDead && entity.type != "hero")) {
                 entity.removeFromStage();
                 return false;
             }
@@ -681,15 +906,17 @@ export default class Game {
         const groundY = 720;                     // boss approach tier
         const gateX = 128 * 52 - 42.4 + 43;      // centre of the bunker gate
         const dictatorStopX = gateX - 110;
-        const heroStopX = dictatorStopX - 115;
+        const heroStopX = dictatorStopX - 170; // first stops at a distance, walks up later
 
-        const walkTextures = ["dictator0001", "dictator0000", "dictator0002", "dictator0000"].map((name) => this.#assets.getTexture(name));
+        // Side-view pixel sprites (48x72), facing left: 4 walk frames,
+        // standing, going down on one knee, kneeling with hands up.
+        const walkTextures = ["dictator0000", "dictator0001", "dictator0002", "dictator0003"].map((name) => this.#assets.getTexture(name));
         const dictator = new AnimatedSprite(walkTextures);
-        dictator.animationSpeed = 1 / 8;
+        dictator.animationSpeed = 1 / 7;
         dictator.anchor.set(0.5, 1);
-        dictator.scale.set(2);
+        dictator.scale.set(1.35);
         dictator.x = gateX;
-        dictator.y = groundY + 2;
+        dictator.y = groundY + 4;
         dictator.alpha = 0;
         layer.addChild(dictator);
 
@@ -714,12 +941,25 @@ export default class Game {
             return bubble;
         };
 
-        const sleeve = new Graphics();
-        const hand = new Sprite(this.#assets.getTexture("pathand0000"));
-        hand.scale.set(2);
-        hand.anchor.set(1, 0.5);
-        hand.visible = false;
-        layer.addChild(sleeve, hand);
+        const head = new Sprite(this.#assets.getTexture("dictatorhead0000"));
+        head.anchor.set(0.5);
+        head.scale.set(1.35);
+        head.visible = false;
+        const headMotion = { vx: 0, vy: 0, bounced: false };
+        const flash = new Graphics();
+        flash.beginFill(0xfff3a0).drawPolygon([0, -9, 5, -3, 16, 0, 5, 3, 0, 9, -4, 0]).endFill();
+        flash.beginFill(0xffffff).drawCircle(2, 0, 3).endFill();
+        flash.visible = false;
+        const tracer = new Graphics();
+        const impact = new AnimatedSprite(this.#assets.getAnimationTextures("explosion"));
+        impact.anchor.set(0.5);
+        impact.scale.set(0.6);
+        impact.animationSpeed = 1 / 3;
+        impact.loop = false;
+        impact.visible = false;
+        impact.onComplete = () => { impact.visible = false; };
+        layer.addChild(head, flash, tracer, impact);
+        const closeX = dictatorStopX - 100;   // point-blank: the muzzle right at his head
 
         const fade = new Graphics();
         fade.beginFill(0x000000).drawRect(0, 0, this.#pixiApp.screen.width, this.#pixiApp.screen.height).endFill();
@@ -749,7 +989,7 @@ export default class Game {
                 }
                 else {
                     dictatorDone = true;
-                    dictator.gotoAndStop(1);
+                    dictator.textures = [this.#assets.getTexture("dictatorstand0000")];
                 }
 
                 let heroDone = false;
@@ -771,34 +1011,83 @@ export default class Game {
                 if (t > 110) {
                     bubbles.forEach((bubble) => bubble.destroy());
                     bubbles.length = 0;
-                    dictator.textures = [this.#assets.getTexture("dictatorkneel0000")];
-                    say("Сиди тихо.", hero.x + 30, groundY - 110);
+                    dictator.textures = [this.#assets.getTexture("dictatorkneel0000")]; // going down
                     next("kneel");
                 }
             }
             else if (phase == "kneel") {
-                if (t > 80) {
-                    bubbles.forEach((bubble) => bubble.destroy());
-                    bubbles.length = 0;
-                    hand.visible = true;
-                    next("pat");
+                if (t > 18 && dictator.texture != this.#assets.getTexture("dictatorkneel0001")) {
+                    dictator.textures = [this.#assets.getTexture("dictatorkneel0001")]; // on his knee, hands up
+                }
+                if (t > 50) {
+                    say("Кінець твоїм наказам.", hero.x + 30, groundY - 110);
+                    next("approach");
                 }
             }
-            else if (phase == "pat") {
-                // four pats on the cap, the sleeve reaching from the hero's shoulder
-                const bob = Math.abs(Math.sin(t * 0.14)) * 10;
-                const shoulderX = hero.x + 36;
-                const shoulderY = groundY - 72;
-                hand.x = dictator.x + 6;
-                hand.y = groundY - 76 - bob;
-                sleeve.clear();
-                sleeve.lineStyle(9, 0x2c2a22, 1);
-                sleeve.moveTo(shoulderX, shoulderY);
-                sleeve.lineTo(hand.x - 22, hand.y);
-                sleeve.lineStyle(6, 0x5a6043, 1);
-                sleeve.moveTo(shoulderX, shoulderY);
-                sleeve.lineTo(hand.x - 22, hand.y);
-                if (t > 4 * Math.PI / 0.14) {
+            else if (phase == "approach") {
+                if (t > 70) {
+                    bubbles.forEach((bubble) => bubble.destroy());
+                    bubbles.length = 0;
+                    if (hero.x < closeX) {
+                        heroView.showRun();
+                        hero.x = Math.min(closeX, hero.x + 1.6 * delta);
+                    }
+                    else {
+                        heroView.showStay();
+                        next("aim");
+                    }
+                }
+            }
+            else if (phase == "aim") {
+                if (t > 30) {
+                    // one shot - the head flies off, the body stays kneeling for a moment
+                    flash.x = hero.x + 86;
+                    flash.y = hero.y + 20;
+                    flash.visible = true;
+                    dictator.textures = [this.#assets.getTexture("dictatorheadless0000")];
+                    head.x = dictator.x + 1;
+                    head.y = dictator.y - 60;
+                    head.visible = true;
+                    headMotion.vx = 1.8;
+                    headMotion.vy = -8;
+                    // bright tracer from the muzzle into the head + a burst on impact
+                    tracer.clear();
+                    tracer.lineStyle(3, 0xfff3a0, 1).moveTo(flash.x + 10, flash.y).lineTo(head.x, head.y);
+                    tracer.lineStyle(1, 0xffffff, 1).moveTo(flash.x + 10, flash.y).lineTo(head.x, head.y);
+                    impact.x = head.x;
+                    impact.y = head.y;
+                    impact.visible = true;
+                    impact.gotoAndPlay(0);
+                    next("shot");
+                }
+            }
+            else if (phase == "shot") {
+                if (t > 6) {
+                    flash.visible = false;
+                    tracer.clear();
+                }
+                // the head: up, over and down, one bounce, then it rolls to a stop
+                const headGround = groundY - 10;
+                headMotion.vy += 0.3 * delta;
+                head.x = Math.min(gateX - 45, head.x + headMotion.vx * delta); // stops at the wall
+                head.y += headMotion.vy * delta;
+                head.rotation += (headMotion.bounced ? headMotion.vx * 0.09 : 0.32) * delta; // spins in the air
+                if (head.y > headGround) {
+                    head.y = headGround;
+                    if (!headMotion.bounced) {
+                        headMotion.bounced = true;
+                        headMotion.vy = -2.8;
+                    }
+                    else {
+                        headMotion.vy = 0;
+                        headMotion.vx *= 0.85;
+                    }
+                }
+                // the body tips over backwards after a beat
+                if (t > 35) {
+                    dictator.rotation = Math.min(1.45, dictator.rotation + 0.06 * delta);
+                }
+                if (t > 170) {
                     next("hold");
                 }
             }
