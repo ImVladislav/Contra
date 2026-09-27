@@ -30,10 +30,24 @@ export default class Camera {
         this.#worldWidth = this.#world.width / this.#zoom;
         this.#viewTop = this.#wantedTop();
         this.#world.y = -this.#viewTop * this.#zoom;
+        this.#publishView();
     }
 
     get zoom(){
         return this.#zoom;
+    }
+
+    // The visible part of the level in world units - enemies use it so they
+    // only open fire when they are actually on screen (see BulletFactory).
+    #publishView(){
+        const left = -this.#world.x / this.#zoom;
+        const top = -this.#world.y / this.#zoom;
+        globalThis.GAME_VIEW = {
+            left,
+            right: left + this.#screenWidth / this.#zoom,
+            top,
+            bottom: top + this.#screenHeight / this.#zoom,
+        };
     }
 
     // half the visible width, in world units
@@ -62,6 +76,7 @@ export default class Camera {
         this.#lastTargetX = x;
         this.#viewTop = this.#wantedTop();
         this.#world.y = -this.#viewTop * this.#zoom;
+        this.#publishView();
     }
 
     update(){
@@ -77,5 +92,6 @@ export default class Camera {
         // vertical: ease towards the hero (no jitter on every jump)
         this.#viewTop += (this.#wantedTop() - this.#viewTop) * 0.1;
         this.#world.y = -this.#viewTop * this.#zoom;
+        this.#publishView();
     }
 }

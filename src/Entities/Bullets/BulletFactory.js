@@ -13,7 +13,26 @@ export default class BulletFactory{
         this.#entities = entities;
     }
 
+    // Enemies (turrets, snipers, boss guns) may only shoot while they are on
+    // screen: with the zoomed-in phone camera they are often above or below
+    // the view, and bullets out of nowhere made the game unplayable.
+    #isEnemyShotAllowed(bulletContext){
+        if (bulletContext.type != "enemyBullet") {
+            return true;
+        }
+        const view = globalThis.GAME_VIEW;
+        if (!view) {
+            return true;
+        }
+        const margin = 8;
+        return bulletContext.x >= view.left - margin && bulletContext.x <= view.right + margin
+            && bulletContext.y >= view.top - margin && bulletContext.y <= view.bottom + margin;
+    }
+
     createBullet(bulletContext){
+        if (!this.#isEnemyShotAllowed(bulletContext)) {
+            return;
+        }
 
         const skin = new Graphics();
         skin.beginFill(0xffffff);
@@ -57,6 +76,9 @@ export default class BulletFactory{
     }
 
     createBossBullet(bulletContext){
+        if (!this.#isEnemyShotAllowed(bulletContext)) {
+            return;
+        }
         const skin = new Graphics();
         skin.beginFill(0xff2222);
         skin.drawCircle(0,0,6);

@@ -1,6 +1,6 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Text, TextStyle } from "../lib/pixi.mjs";
-import Camera from "./Camera.js?v=7";
-import BulletFactory from "./Entities/Bullets/BulletFactory.js";
+import Camera from "./Camera.js?v=8";
+import BulletFactory from "./Entities/Bullets/BulletFactory.js?v=8";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
 import HeroFactory from "./Entities/Hero/HeroFactory.js";
 import PlatformFactory from "./Entities/Platforms/PlatformFactory.js";
@@ -222,6 +222,7 @@ export default class Game {
         this.#platforms = [];
         this.#entities = [];
 
+        globalThis.GAME_VIEW = undefined;
         this.#worldContainer = new World();
         // Whole level drawn 64px higher on screen: a much wider band of river
         // shows under the islands (88px instead of 24) while the level layout
