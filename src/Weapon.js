@@ -15,15 +15,16 @@ export default class Weapon{
         this.#currentGunStrategy = this.#defaultGunStrategy;
     }
 
-    update(bulletContext){
+    update(bulletContext, delta = 1){
         if(this.#isFire == false){
             return
         }
 
-        if(this.#count % this.#limit == 0){
+        if(this.#count <= 0){
             this.#currentGunStrategy(bulletContext);
+            this.#count += this.#limit;
         }
-        this.#count ++;
+        this.#count -= delta;
     }
 
     setWeapon(type){

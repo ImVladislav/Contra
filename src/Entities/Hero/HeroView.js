@@ -154,21 +154,23 @@ export default class HeroView extends Container {
     this.#parachute.visible = isVisible;
   }
 
-  update() {
+  update(delta = 1) {
     if (this.#parachute?.visible) {
-      this.#parachuteTime += 0.05;
+      this.#parachuteTime += 0.05 * delta;
       this.#parachute.rotation = Math.sin(this.#parachuteTime) * 0.06;
     }
 
     if (this.#stm.currentState == "swim" || this.#stm.currentState == "dive") {
-      this.#swimAnimTime += 0.12;
+      this.#swimAnimTime += 0.12 * delta;
     }
 
     // Swimming: only the body bobs and sways (like treading water); the
     // foam ring stays put on the water surface.
     if (this.#stm.currentState == "swim") {
-      this.#swimBody.y = this.#swimBody.baseY + Math.sin(this.#swimAnimTime) * 2;
-      this.#swimBody.x = this.#swimBody.baseX + Math.sin(this.#swimAnimTime * 0.5) * 1.5;
+      this.#swimBody.y =
+        this.#swimBody.baseY + Math.sin(this.#swimAnimTime) * 2;
+      this.#swimBody.x =
+        this.#swimBody.baseX + Math.sin(this.#swimAnimTime * 0.5) * 1.5;
     }
 
     if (this.#stm.currentState == "dive") {
@@ -177,7 +179,7 @@ export default class HeroView extends Container {
 
     if (this.#stm.currentState == "dive") {
       if (this.#diveTransition.active) {
-        this.#updateSubmerge();
+        this.#updateSubmerge(delta);
       }
       this.#drawBubbles();
     }
@@ -247,9 +249,11 @@ export default class HeroView extends Container {
 
   showRunUp() {
     this.#toState("runUp");
-    this.#setBulletPointShift(50, 10);
+    // Muzzle tip of the runup sprites sits near the top-right corner of the
+    // frame (~x 76, y 3), shifted up 3px more by #getRunUpImage()'s view.y.
+    this.#setBulletPointShift(75, -8);
 
-    this.#hitBox.width = 20;
+    this.#hitBox.width = 10;
     this.#hitBox.height = 90;
     this.#hitBox.shiftX = 0;
     this.#hitBox.shiftY = 0;
@@ -306,11 +310,9 @@ export default class HeroView extends Container {
     // Muzzle positions of the rotated poses (see #getSwimImage).
     if (pose == "up") {
       this.#setBulletPointShift(7, 5);
-    }
-    else if (pose == "diag") {
+    } else if (pose == "diag") {
       this.#setBulletPointShift(58, 17);
-    }
-    else {
+    } else {
       // Body sits 28px lower than when standing -> gun muzzle at y ~48.
       this.#setBulletPointShift(100, 48);
     }
@@ -327,13 +329,18 @@ export default class HeroView extends Container {
     if (!this.parent) {
       return;
     }
-    const splash = new AnimatedSprite(this.#assets.getAnimationTextures("splash"));
+    const splash = new AnimatedSprite(
+      this.#assets.getAnimationTextures("splash"),
+    );
     splash.animationSpeed = 1 / 4;
     splash.loop = false;
     splash.alpha = 0.8;
     // torso is ~x 33 in the hero sprite; splash art is centered at x 48,
     // with its waterline at y 84; the water surface is at hero y + 66.
-    const torsoX = this.x + this.#rootNode.x + (33 - this.#rootNode.pivot.x) * this.#rootNode.scale.x;
+    const torsoX =
+      this.x +
+      this.#rootNode.x +
+      (33 - this.#rootNode.pivot.x) * this.#rootNode.scale.x;
     splash.x = torsoX - 48;
     splash.y = this.y + 66 - 84;
     splash.onComplete = () => splash.removeFromParent();
@@ -405,16 +412,29 @@ export default class HeroView extends Container {
 
     const container = new Container();
 
-    const legs = new Sprite(new Texture(texture.baseTexture,
-      new Rectangle(frame.x, frame.y + waistY, frame.width, frame.height - waistY)));
+    const legs = new Sprite(
+      new Texture(
+        texture.baseTexture,
+        new Rectangle(
+          frame.x,
+          frame.y + waistY,
+          frame.width,
+          frame.height - waistY,
+        ),
+      ),
+    );
     legs.y = waistY;
 
-    const upper = new Sprite(new Texture(texture.baseTexture,
-      new Rectangle(frame.x, frame.y, frame.width, waistY)));
+    const upper = new Sprite(
+      new Texture(
+        texture.baseTexture,
+        new Rectangle(frame.x, frame.y, frame.width, waistY),
+      ),
+    );
     upper.pivot.set(waistX, waistY);
     upper.x = waistX;
     upper.y = waistY;
-    upper.rotation = -66 * Math.PI / 180;
+    upper.rotation = (-66 * Math.PI) / 180;
 
     container.addChild(legs, upper);
     // Feet on the ground (bottom row 94, same as stay0000 - the old -31
@@ -528,20 +548,32 @@ export default class HeroView extends Container {
       return body;
     };
     this.#swimBodies.forward = makeBody("stay0000", 33, 38, 0);
-    this.#swimBodies.up = makeBody("stayup0000", 16, 40, -66 * Math.PI / 180);
-    this.#swimBodies.diag = makeBody("runup0000", 29, 38, -15 * Math.PI / 180);
+    this.#swimBodies.up = makeBody("stayup0000", 16, 40, (-66 * Math.PI) / 180);
+    this.#swimBodies.diag = makeBody(
+      "runup0000",
+      29,
+      38,
+      (-15 * Math.PI) / 180,
+    );
     this.#swimBodies.up.visible = false;
     this.#swimBodies.diag.visible = false;
     this.#swimBody = this.#swimBodies.forward;
 
     // foam art: torso center at x 46, waterline at y 12 -> surface y ~64
-    const foam = new AnimatedSprite(this.#assets.getAnimationTextures("swimfoam"));
+    const foam = new AnimatedSprite(
+      this.#assets.getAnimationTextures("swimfoam"),
+    );
     foam.animationSpeed = 1 / 8;
     foam.x = 33 - 46;
     foam.y = 52;
     foam.play();
 
-    container.addChild(this.#swimBodies.forward, this.#swimBodies.up, this.#swimBodies.diag, foam);
+    container.addChild(
+      this.#swimBodies.forward,
+      this.#swimBodies.up,
+      this.#swimBodies.diag,
+      foam,
+    );
     return container;
   }
 
@@ -581,9 +613,9 @@ export default class HeroView extends Container {
   // opaque water tile on the foreground layer naturally covers it once it
   // passes the waterline, ~66 in this local space) while a splash ring
   // expands at the surface, then hands off to the bubbles.
-  #updateSubmerge() {
+  #updateSubmerge(delta = 1) {
     const transition = this.#diveTransition;
-    transition.progress += 1 / transition.duration;
+    transition.progress += delta / transition.duration;
     const p = Math.min(transition.progress, 1);
     const sinkT = p * p; // accelerate downward, like gravity pulling under
 

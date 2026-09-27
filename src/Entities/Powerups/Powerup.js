@@ -45,7 +45,7 @@ export default class Powerup extends Entity{
         this._view.y = value;
     }
 
-    update(){
+    update(delta = 1){
         if(!this.isActive){
             if(this.x - this.#target.x < 512 + this.collisionBox.width){
                 this.isActive = true;
@@ -64,7 +64,7 @@ export default class Powerup extends Entity{
             return;
         }
 
-        this.#screenX += this.#velocityX;
+        this.#screenX += this.#velocityX * delta;
         this.x = this.#screenLeft() + this.#screenX;
         this.y = this.#flyY + Math.sin(this.#screenX * 0.02) * this.#bobAmplitude;
 

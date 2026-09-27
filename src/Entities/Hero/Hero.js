@@ -77,25 +77,25 @@ export default class Hero extends Entity{
         return Math.abs(this.x - this.#prevPoint.x) > 0.5 || Math.abs(this.y - this.#prevPoint.y) > 0.5;
     }
 
-    update() {
+    update(delta = 1) {
 
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
         this.#wasInWater = this.#isInWater;
         this.#isInWater = false;
-        this._view.update();
+        this._view.update(delta);
 
         if (this.#invulnerabilityFrames > 0) {
-            this.#invulnerabilityFrames--;
-            this._view.setBlinking(this.#invulnerabilityFrames % 2 == 0);
+            this.#invulnerabilityFrames = Math.max(0, this.#invulnerabilityFrames - delta);
+            this._view.setBlinking(Math.floor(this.#invulnerabilityFrames) % 2 == 0);
             if (this.#invulnerabilityFrames == 0) {
                 this._view.setBlinking(false);
             }
         }
 
         this.#velocityX = this.#isDiving ? 0 : this.#movement.x * this.#SPEED;
-        this.x += this.#velocityX;
+        this.x += this.#velocityX * delta;
 
         if (this.#velocityY > 0) {
             if (!(this.#state == States.Jump || this.#state == States.FlyDown)) {
@@ -111,11 +111,11 @@ export default class Hero extends Entity{
             this.#state = States.FlyDown;
         }
 
-        this.#velocityY += this.#GRAVITY_FORCE;
+        this.#velocityY += this.#GRAVITY_FORCE * delta;
         if (this.#isParachuting && this.#velocityY > 2.2) {
             this.#velocityY = 2.2;
         }
-        this.y += this.#velocityY;
+        this.y += this.#velocityY * delta;
     }
 
     deployParachute() {

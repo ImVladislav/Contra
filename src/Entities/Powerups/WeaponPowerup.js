@@ -32,18 +32,15 @@ export default class WeaponPowerup extends Entity{
         return this.#prevPoint;
     }
 
-    update(){
+    update(delta = 1){
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
-        this.#velocityX -= 0.04;
-        if(this.#velocityX < 0){
-            this.#velocityX = 0;
-        }
-        this.x += this.#velocityX;
+        this.#velocityX = Math.max(0, this.#velocityX - 0.04 * delta);
+        this.x += this.#velocityX * delta;
 
-        this.#velocityY = Math.min(this.#velocityY + this.#GRAVITY_FORCE, this.#MAX_FALL_SPEED);
-        this.y += this.#velocityY;
+        this.#velocityY = Math.min(this.#velocityY + this.#GRAVITY_FORCE * delta, this.#MAX_FALL_SPEED);
+        this.y += this.#velocityY * delta;
     }
 
     stay(platformY){

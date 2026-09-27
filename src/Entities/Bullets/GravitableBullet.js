@@ -41,13 +41,13 @@ export default class GravitableBullet extends Bullet{
         return this.#prevPoint;
     }
 
-    update() {
+    update(delta = 1) {
         this.#prevPoint.x = this.x;
         this.#prevPoint.y = this.y;
 
-        this.x += this.speed * Math.cos(this.angle);
-        this.#velocityY += this.#GRAVITY_FORCE;
-        this.y += this.speed * Math.sin(this.angle) + this.#velocityY;
+        this.x += this.speed * delta * Math.cos(this.angle);
+        this.#velocityY += this.#GRAVITY_FORCE * delta;
+        this.y += this.speed * delta * Math.sin(this.angle) + this.#velocityY * delta;
     }
 
     stay(platformY) {

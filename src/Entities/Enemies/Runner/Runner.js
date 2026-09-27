@@ -85,7 +85,7 @@ export default class Runner extends Entity{
         return horizontalDistance < 420 && verticalDistance < 110 && verticalDistance > -90;
     }
 
-    update() {
+    update(delta = 1) {
 
         if(!this.isActive){
             if(Math.abs(this.x - this.#target.x) < 720){
@@ -127,9 +127,9 @@ export default class Runner extends Entity{
         }
 
         this.#velocityX = this.#movement.x * this.#SPEED;
-        this.x += this.#velocityX;
+        this.x += this.#velocityX * delta;
 
-        this.#jumpTimer++;
+        this.#jumpTimer += delta;
         const shouldJumpAtHero = canSeeTarget && !targetInWater && this.#target.isMoving && !heroIsShooting;
         if (shouldJumpAtHero && this.#state == States.Stay && this.#jumpTimer > 90 && Math.random() < this.jumpBehaviorKoef) {
             this.jump();
@@ -150,8 +150,8 @@ export default class Runner extends Entity{
             }
         }
 
-        this.#velocityY += this.#GRAVITY_FORCE;
-        this.y += this.#velocityY;
+        this.#velocityY += this.#GRAVITY_FORCE * delta;
+        this.y += this.#velocityY * delta;
 
         this.setView({
             arrowLeft: this.#movement.x == -1,

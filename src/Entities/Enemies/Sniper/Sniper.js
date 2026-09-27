@@ -27,7 +27,7 @@ export default class Sniper extends Entity{
         this.gravitable = false;
     }
 
-    update(){
+    update(delta = 1){
         if (this.#isDying || this.#target.isDead){
             return;
         }
@@ -45,7 +45,7 @@ export default class Sniper extends Entity{
 
         this.#aim(dx, dy);
 
-        this.#timeCounter++;
+        this.#timeCounter += delta;
         if (this.#timeCounter > this.#fireDelay) {
             this.#fire();
             this.#timeCounter = 0;

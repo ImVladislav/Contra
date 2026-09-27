@@ -21,9 +21,9 @@ export default class Boss extends Entity{
         this.#wall = wall;
     }
 
-    update(){
+    update(delta = 1){
         if(this.#hitCooldown > 0){
-            this.#hitCooldown--;
+            this.#hitCooldown = Math.max(0, this.#hitCooldown - delta);
         }
     }
 

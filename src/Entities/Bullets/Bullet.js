@@ -34,26 +34,26 @@ export default class Bullet extends Entity{
         this.#lifeFrames = frames;
     }
 
-    update(){
+    update(delta = 1){
         if(this.spiral){
             if(!this.#spiralCenter){
                 this.#spiralCenter = {x: this.x, y: this.y};
             }
-            this.#spiralCenter.x += this.speed * Math.cos(this.#angle);
-            this.#spiralCenter.y += this.speed * Math.sin(this.#angle);
-            this.#spiralPhase += this.spiral.step;
+            this.#spiralCenter.x += this.speed * delta * Math.cos(this.#angle);
+            this.#spiralCenter.y += this.speed * delta * Math.sin(this.#angle);
+            this.#spiralPhase += this.spiral.step * delta;
             // Start the circle at the gun muzzle (phase 0 = on the line).
             const r = this.spiral.radius;
             this.x = this.#spiralCenter.x + r * Math.cos(this.#spiralPhase) - r;
             this.y = this.#spiralCenter.y + r * Math.sin(this.#spiralPhase);
         }
         else{
-            this.x += this.speed * Math.cos(this.#angle);
-            this.y += this.speed * Math.sin(this.#angle);
+            this.x += this.speed * delta * Math.cos(this.#angle);
+            this.y += this.speed * delta * Math.sin(this.#angle);
         }
 
         if(this.#lifeFrames != Infinity){
-            this.#lifeFrames--;
+            this.#lifeFrames -= delta;
             if(this.#lifeFrames <= 0){
                 this.dead();
             }

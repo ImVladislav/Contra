@@ -19,7 +19,7 @@ export default class BossGun extends Entity{
         this.isActive = false;
     }
 
-    update(){
+    update(delta = 1){
         if (this.#target.isDead){
             return;
         }
@@ -31,7 +31,7 @@ export default class BossGun extends Entity{
             return;
         }
 
-        this.#fire();
+        this.#fire(delta);
     }
 
     damage(hitX, hitY){
@@ -47,8 +47,8 @@ export default class BossGun extends Entity{
         }
     }
 
-    #fire(){
-        this.#timeCounter++;
+    #fire(delta = 1){
+        this.#timeCounter += delta;
 
         if (this.#timeCounter < this.#reloadDelay) {
             return;

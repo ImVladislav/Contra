@@ -19,7 +19,7 @@ export default class Tourelle extends Entity{
         this.isActive = false;
     }
 
-    update(){
+    update(delta = 1){
         if (this.#target.isDead){
             return;
         }
@@ -34,7 +34,7 @@ export default class Tourelle extends Entity{
         let angle = Math.atan2(this.#target.y - this.y, this.#target.x - this.x);
         this._view.gunRotation = angle;
 
-        this.#fire(angle);
+        this.#fire(angle, delta);
     }
 
     damage(){
@@ -57,8 +57,8 @@ export default class Tourelle extends Entity{
         }
     }
 
-    #fire(angle){
-        this.#timeCounter++;
+    #fire(angle, delta = 1){
+        this.#timeCounter += delta;
 
         if(this.#timeCounter < 50){
             return;

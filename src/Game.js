@@ -53,14 +53,14 @@ export default class Game {
         this.#showMainMenu();
     }
 
-    update(){
+    update(delta = 1){
         if (this.#menuMode != "playing") {
             return;
         }
 
         for(let i = 0; i < this.#entities.length; i++){
             const entity = this.#entities[i];
-            entity.update();
+            entity.update(delta);
 
             if(entity.type == "hero" || entity.type == "enemy" || entity.type == "powerupBox" || entity.type == "spreadgunPowerup" || entity.type == "weaponPowerup"){
                 this.#checkDamage(entity);
@@ -74,7 +74,7 @@ export default class Game {
 
         this.#camera.update();
         if (!this.#hero.isDiving) {
-            this.#weapon.update(this.#hero.bulletContext);
+            this.#weapon.update(this.#hero.bulletContext, delta);
         }
 
         this.#checkGameStatus();
@@ -487,7 +487,7 @@ export default class Game {
         return container;
     }
 
-    // Portrait = the actual in-game hero sprite, scaled up, pixel-crisp.
+    // Portrait = the character headshot, cropped to a rounded square.
     #buildPortrait(profile, size) {
         const container = new Container();
 
@@ -495,30 +495,17 @@ export default class Game {
         bg.beginFill(0x1c2f40);
         bg.drawRoundedRect(0, 0, size, size, 10);
         bg.endFill();
-        bg.beginFill(profile.accent, 0.18);
-        bg.drawCircle(size / 2, size / 2, size * 0.42);
-        bg.endFill();
         container.addChild(bg);
 
-        const ground = new Sprite(this.#assets.getTexture("platform0000"));
-        ground.width = size;
-        ground.height = size * 0.35;
-        ground.y = size - ground.height + 6;
-        const groundMask = new Graphics();
-        groundMask.beginFill(0xffffff);
-        groundMask.drawRoundedRect(0, 0, size, size, 10);
-        groundMask.endFill();
-        ground.mask = groundMask;
-        container.addChild(ground, groundMask);
-
-        const hero = new Sprite(this.#assets.getTexture("stay0000"));
-        const scale = (size * 0.78) / hero.texture.height;
-        hero.scale.set(scale);
-        hero.tint = profile.tint;
-        hero.anchor.set(0.5, 1);
-        hero.x = size / 2;
-        hero.y = size - size * 0.08;
-        container.addChild(hero);
+        const photo = new Sprite(this.#assets.getTexture("ava"));
+        photo.width = size;
+        photo.height = size;
+        const photoMask = new Graphics();
+        photoMask.beginFill(0xffffff);
+        photoMask.drawRoundedRect(0, 0, size, size, 10);
+        photoMask.endFill();
+        photo.mask = photoMask;
+        container.addChild(photo, photoMask);
 
         return container;
     }
@@ -994,10 +981,19 @@ export default class Game {
 
                 let heroDone = false;
                 if (hero.x < heroStopX) {
+                    heroView.flip(1);
                     heroView.showRun();
                     hero.x = Math.min(heroStopX, hero.x + 3 * delta);
                 }
+                else if (hero.x > heroStopX) {
+                    // Boss can die with the hero standing right next to the gate -
+                    // walk him back to the vantage point instead of snapping him there.
+                    heroView.flip(-1);
+                    heroView.showRun();
+                    hero.x = Math.max(heroStopX, hero.x - 3 * delta);
+                }
                 else {
+                    heroView.flip(1);
                     heroView.showStay();
                     heroDone = true;
                 }
