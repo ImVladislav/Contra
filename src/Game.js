@@ -1,5 +1,5 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Text, TextStyle } from "../lib/pixi.mjs";
-import Camera from "./Camera.js?v=6";
+import Camera from "./Camera.js?v=7";
 import BulletFactory from "./Entities/Bullets/BulletFactory.js";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
 import HeroFactory from "./Entities/Hero/HeroFactory.js";
@@ -42,8 +42,14 @@ export default class Game {
     #seaDroneCleanup;
     #background;
     #isTouch = window.matchMedia("(pointer: coarse)").matches;
-    // phones/tablets: the camera is zoomed in and follows the hero up/down
-    #zoom = window.matchMedia("(pointer: coarse)").matches ? 1.5 : 1;
+    // Phones/tablets: the canvas is as wide as the phone, but the camera is
+    // zoomed so that exactly the standard 1024 world units fit across it -
+    // the same view width as on a PC (enemies wake up at 720 units from the
+    // hero, so a wider view showed them standing still at the edges). The
+    // camera also follows the hero up and down there.
+    #getZoom() {
+        return this.#isTouch ? this.#pixiApp.screen.width / 1024 : 1;
+    }
 
     keyboardProcessor;
 
@@ -139,7 +145,8 @@ export default class Game {
         this.#background.destroy({ children: true });
         this.#background = new StaticBackground(this.#pixiApp.screen, this.#assets);
         this.#pixiApp.stage.addChildAt(this.#background, index);
-        this.#camera?.resize?.(width);
+        globalThis.GAME_ZOOM = this.#getZoom();
+        this.#camera?.resize?.(width, this.#getZoom());
 
         if (this.#menuMode == "main") {
             const selected = this.#selectedMenuOption;
@@ -250,11 +257,11 @@ export default class Game {
             screenSize: this.#pixiApp.screen,
             maxWorldWidth: this.#worldContainer.width,
             isBackScrollX: false,
-            zoom: this.#zoom,
+            zoom: this.#getZoom(),
             topLimit: 64,       // sky line (the old fixed -64 offset)
             bottomLimit: 832,   // bottom of the river
         });
-        globalThis.GAME_ZOOM = this.#zoom;
+        globalThis.GAME_ZOOM = this.#getZoom();
         this.#weapon = new Weapon(this.#bulletFactory);
         this.#weapon.setWeapon(1);
 

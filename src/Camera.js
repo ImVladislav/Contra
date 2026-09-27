@@ -52,8 +52,10 @@ export default class Camera {
     }
 
     // The view was resized (phone rotated / browser window changed): re-centre.
-    resize(screenWidth){
+    resize(screenWidth, zoom = this.#zoom){
         this.#screenWidth = screenWidth;
+        this.#zoom = zoom;
+        this.#world.scale.set(zoom);
         const center = this.#halfViewWidth();
         const x = Math.min(Math.max(this.#target.x, center), this.#worldWidth - center);
         this.#world.x = (center - x) * this.#zoom;
