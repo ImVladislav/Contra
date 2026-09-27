@@ -355,12 +355,29 @@ export default class Game {
         const container = new Container();
 
         const background = new Graphics();
-        background.beginFill(0x050b12, 0.86).drawRect(0, 0, w, h).endFill();
+        // Just a light overall tint - the night sky, stars and mountain
+        // ridge from StaticBackground show through instead of hiding behind
+        // a flat panel.
+        background.beginFill(0x03070c, 0.25).drawRect(0, 0, w, h).endFill();
+
+        // Cinematic vignette on the left/right edges (stacked, thinning
+        // bands - there's no gradient fill in this Pixi build, so this
+        // fakes one the same way the title glow below does).
+        [[260, 0.05], [180, 0.08], [100, 0.12], [40, 0.18]].forEach(([bandWidth, alpha]) => {
+            background.beginFill(0x000000, alpha).drawRect(0, 0, bandWidth, h).endFill();
+            background.beginFill(0x000000, alpha).drawRect(w - bandWidth, 0, bandWidth, h).endFill();
+        });
+
+        // Bottom scrim so the portrait, menu options and hint stay legible
+        // over the ridge/treeline.
+        [[h - 280, 0.05], [h - 200, 0.08], [h - 120, 0.12], [h - 60, 0.18]].forEach(([y, alpha]) => {
+            background.beginFill(0x000000, alpha).drawRect(0, y, w, h - y).endFill();
+        });
+
         // soft red glow behind the title (a few stacked ellipses)
         for (let k = 0; k < 6; k++) {
             background.beginFill(0x8a1a12, 0.07).drawEllipse(w / 2, 180, 470 - k * 55, 135 - k * 18).endFill();
         }
-        background.beginFill(0x000000, 0.35).drawRect(0, h - 90, w, 90).endFill();
         container.addChild(background);
 
         const operation = new Text("ОПЕРАЦІЯ", new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 20, fill: 0xa9c6d9, letterSpacing: 12 }));
@@ -392,35 +409,133 @@ export default class Game {
         subtitle.y = 272;
         container.addChild(subtitle);
 
-        const portrait = this.#buildPortrait(this.#getSelectedProfile(), 250);
-        portrait.x = w / 2 - 330;
-        portrait.y = 330;
+        // Thin stencil-style divider with a diamond tick, under the subtitle.
+        const divider = new Graphics();
+        divider.lineStyle(2, 0xff4b3a, 0.6);
+        divider.moveTo(w / 2 - 230, 306).lineTo(w / 2 - 14, 306);
+        divider.moveTo(w / 2 + 14, 306).lineTo(w / 2 + 230, 306);
+        divider.lineStyle(0);
+        divider.beginFill(0xffd166).drawPolygon([w / 2, 300, w / 2 + 7, 306, w / 2, 312, w / 2 - 7, 306]).endFill();
+        container.addChild(divider);
+
+        const portrait = this.#buildPortrait(this.#getSelectedProfile(), 280);
+        portrait.x = w / 2 - 340;
+        portrait.y = 322;
         container.addChild(portrait);
 
         const callsign = new Text("позивний «Дев'ятий»", new TextStyle({ fontFamily: "Arial", fontSize: 18, fill: 0xa9c6d9, fontStyle: "italic" }));
         callsign.anchor.set(0.5, 0);
-        callsign.x = portrait.x + 125;
-        callsign.y = 592;
+        callsign.x = portrait.x + 140;
+        callsign.y = portrait.y + 280 + 14;
         container.addChild(callsign);
 
-        const options = ["ПОЧАТИ МІСІЮ", "БРИФІНГ"];
+        // Small intel readout, top-right - pure flavour text.
+        const coords = new Text("48.3800 N\n31.1656 E", new TextStyle({
+            fontFamily: "Arial", fontSize: 14, fill: 0xff6a52, letterSpacing: 1, align: "right",
+        }));
+        coords.anchor.set(1, 0);
+        coords.x = w - 36;
+        coords.y = 28;
+        container.addChild(coords);
+
+        // Menu options as icon rows - dark by default, red when selected
+        // (both states pre-built and toggled in #updateMenuSelection so
+        // there's no per-frame redraw).
+        const rowW = 460, rowH = 76, rowGap = 16, rowX = w / 2 - 20, rowStartY = 372;
+        const options = [
+            { label: "ПОЧАТИ МІСІЮ", icon: "play" },
+            { label: "БРИФІНГ", icon: "doc" },
+        ];
         options.forEach((option, index) => {
-            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: 44, fill: 0xffffff, stroke: 0x000000, strokeThickness: 5, letterSpacing: 2 }));
-            text.baseText = option;
-            text.x = w / 2 + 10;
-            text.y = 390 + index * 80;
+            const rowY = rowStartY + index * (rowH + rowGap);
+
+            const bgOff = new Graphics();
+            bgOff.lineStyle(1.5, 0x3a4b5c, 0.7);
+            bgOff.beginFill(0x0a141d, 0.65);
+            bgOff.drawRoundedRect(0, 0, rowW, rowH, 12);
+            bgOff.endFill();
+            bgOff.x = rowX;
+            bgOff.y = rowY;
+            bgOff.name = `menu-row-off-${index}`;
+            container.addChild(bgOff);
+
+            const bgOn = new Graphics();
+            for (let k = 0; k < 4; k++) {
+                bgOn.beginFill(0xb3261a, 0.2).drawRoundedRect(0, 0, rowW, rowH, 12).endFill();
+            }
+            bgOn.lineStyle(2, 0xff5a3c, 0.95);
+            bgOn.drawRoundedRect(1, 1, rowW - 2, rowH - 2, 12);
+            bgOn.x = rowX;
+            bgOn.y = rowY;
+            bgOn.name = `menu-row-on-${index}`;
+            container.addChild(bgOn);
+
+            const badge = new Graphics();
+            badge.beginFill(0x050b12, 0.85);
+            badge.drawCircle(38, rowH / 2, 21);
+            badge.endFill();
+            badge.x = rowX;
+            badge.y = rowY;
+            const icon = this.#drawMenuIcon(option.icon, 38, rowH / 2);
+            icon.x = rowX;
+            icon.y = rowY;
+            container.addChild(badge, icon);
+
+            const text = new Text(option.label, new TextStyle({ fontFamily: "Impact", fontSize: 38, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
+            text.baseText = option.label;
+            text.anchor.set(0, 0.5);
+            text.x = rowX + 76;
+            text.y = rowY + rowH / 2;
             text.name = `menu-option-${index}`;
             container.addChild(text);
         });
 
-        const hintText = new Text(
-            "Стрілки - вибір, Enter - підтвердити  |  Space - стрибок, F - вогонь, P - пауза",
-            new TextStyle({ fontFamily: "Arial", fontSize: 18, fill: 0xa9c6d9 })
-        );
-        hintText.anchor.set(0.5);
-        hintText.x = w / 2;
-        hintText.y = h - 45;
-        container.addChild(hintText);
+        // Bottom control hints, each key drawn as its own keycap badge.
+        const keys = [
+            ["↑↓", "ВИБІР"],
+            ["ENTER", "ПІДТВЕРДИТИ"],
+            ["SPACE", "СТРИБОК"],
+            ["F", "ВОГОНЬ"],
+            ["P", "ПАУЗА"],
+        ];
+        const hintDivider = new Graphics();
+        hintDivider.lineStyle(1, 0xa9c6d9, 0.25);
+        hintDivider.moveTo(w / 2 - 360, h - 68).lineTo(w / 2 + 360, h - 68);
+        container.addChild(hintDivider);
+
+        const keyStyle = new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 13, fill: 0xdfeffb });
+        const labelStyle = new TextStyle({ fontFamily: "Arial", fontSize: 14, fill: 0xa9c6d9 });
+        const measured = keys.map(([key, label]) => {
+            const keyText = new Text(key, keyStyle);
+            const labelText = new Text(label, labelStyle);
+            const capWidth = keyText.width + 20;
+            return { keyText, labelText, capWidth, groupWidth: capWidth + 8 + labelText.width };
+        });
+        const totalWidth = measured.reduce((sum, m) => sum + m.groupWidth, 0) + (measured.length - 1) * 26;
+        let cursorX = w / 2 - totalWidth / 2;
+        const hintY = h - 45;
+        measured.forEach(({ keyText, labelText, capWidth }) => {
+            const cap = new Graphics();
+            cap.lineStyle(1.5, 0xa9c6d9, 0.6);
+            cap.beginFill(0x0a141d, 0.7);
+            cap.drawRoundedRect(0, 0, capWidth, 28, 6);
+            cap.endFill();
+            cap.x = cursorX;
+            cap.y = hintY - 14;
+            container.addChild(cap);
+
+            keyText.anchor.set(0.5);
+            keyText.x = cursorX + capWidth / 2;
+            keyText.y = hintY;
+            container.addChild(keyText);
+
+            labelText.anchor.set(0, 0.5);
+            labelText.x = cursorX + capWidth + 8;
+            labelText.y = hintY;
+            container.addChild(labelText);
+
+            cursorX += capWidth + 8 + labelText.width + 26;
+        });
 
         container.optionCount = options.length;
         this.#updateMenuSelection(container, options.length);
@@ -487,13 +602,23 @@ export default class Game {
         return container;
     }
 
-    // Portrait = the character headshot, cropped to a rounded square.
+    // Portrait = the character headshot, cropped to a rounded square and
+    // framed like a dog-tag ID photo: soft accent glow, gold border, and a
+    // set of targeting-style corner brackets just outside the frame.
     #buildPortrait(profile, size) {
         const container = new Container();
 
+        for (let k = 0; k < 5; k++) {
+            const glow = new Graphics();
+            glow.beginFill(profile.accent, 0.05);
+            glow.drawCircle(size / 2, size / 2, size * 0.72 - k * (size * 0.08));
+            glow.endFill();
+            container.addChild(glow);
+        }
+
         const bg = new Graphics();
-        bg.beginFill(0x1c2f40);
-        bg.drawRoundedRect(0, 0, size, size, 10);
+        bg.beginFill(0x0d1620);
+        bg.drawRoundedRect(0, 0, size, size, 14);
         bg.endFill();
         container.addChild(bg);
 
@@ -502,21 +627,69 @@ export default class Game {
         photo.height = size;
         const photoMask = new Graphics();
         photoMask.beginFill(0xffffff);
-        photoMask.drawRoundedRect(0, 0, size, size, 10);
+        photoMask.drawRoundedRect(0, 0, size, size, 14);
         photoMask.endFill();
         photo.mask = photoMask;
         container.addChild(photo, photoMask);
 
+        const frame = new Graphics();
+        frame.lineStyle(3, 0xffd166, 0.9);
+        frame.drawRoundedRect(1.5, 1.5, size - 3, size - 3, 14);
+        container.addChild(frame);
+
+        const brackets = new Graphics();
+        brackets.lineStyle(3, profile.accent, 0.95);
+        const armLength = 20, offset = 10;
+        // top-left
+        brackets.moveTo(-offset, -offset + armLength).lineTo(-offset, -offset).lineTo(-offset + armLength, -offset);
+        // top-right
+        brackets.moveTo(size + offset - armLength, -offset).lineTo(size + offset, -offset).lineTo(size + offset, -offset + armLength);
+        // bottom-left
+        brackets.moveTo(-offset, size + offset - armLength).lineTo(-offset, size + offset).lineTo(-offset + armLength, size + offset);
+        // bottom-right
+        brackets.moveTo(size + offset - armLength, size + offset).lineTo(size + offset, size + offset).lineTo(size + offset, size + offset - armLength);
+        container.addChild(brackets);
+
         return container;
+    }
+
+    // Simple vector icon for a menu row.
+    #drawMenuIcon(type, cx, cy) {
+        const icon = new Graphics();
+        icon.beginFill(0xffffff);
+        if (type == "play") {
+            icon.drawPolygon([cx - 6, cy - 9, cx - 6, cy + 9, cx + 10, cy]);
+            icon.endFill();
+        }
+        else {
+            icon.drawRoundedRect(cx - 8, cy - 11, 16, 22, 2);
+            icon.endFill();
+            icon.beginFill(0x050b12);
+            icon.drawRect(cx - 5, cy - 5, 10, 2);
+            icon.drawRect(cx - 5, cy, 10, 2);
+            icon.drawRect(cx - 5, cy + 5, 6, 2);
+            icon.endFill();
+        }
+        return icon;
     }
 
     #updateMenuSelection(container, optionCount) {
         for (let index = 0; index < optionCount; index++) {
             const option = container.getChildByName(`menu-option-${index}`);
             const isSelected = index == this.#selectedMenuOption;
-            option.style.fill = isSelected ? 0xffd166 : 0xffffff;
             if (option.baseText) {
                 option.text = isSelected ? `► ${option.baseText}` : option.baseText;
+            }
+
+            const rowOff = container.getChildByName(`menu-row-off-${index}`);
+            const rowOn = container.getChildByName(`menu-row-on-${index}`);
+            if (rowOff && rowOn) {
+                rowOff.visible = !isSelected;
+                rowOn.visible = isSelected;
+                option.style.fill = isSelected ? 0xffffff : 0xc9d4dd;
+            }
+            else {
+                option.style.fill = isSelected ? 0xffd166 : 0xffffff;
             }
         }
     }
