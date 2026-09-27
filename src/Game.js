@@ -1,5 +1,5 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Text, TextStyle } from "../lib/pixi.mjs";
-import Camera from "./Camera.js?v=4";
+import Camera from "./Camera.js?v=6";
 import BulletFactory from "./Entities/Bullets/BulletFactory.js";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
 import HeroFactory from "./Entities/Hero/HeroFactory.js";
@@ -42,6 +42,8 @@ export default class Game {
     #seaDroneCleanup;
     #background;
     #isTouch = window.matchMedia("(pointer: coarse)").matches;
+    // phones/tablets: the camera is zoomed in and follows the hero up/down
+    #zoom = window.matchMedia("(pointer: coarse)").matches ? 1.5 : 1;
 
     keyboardProcessor;
 
@@ -248,7 +250,11 @@ export default class Game {
             screenSize: this.#pixiApp.screen,
             maxWorldWidth: this.#worldContainer.width,
             isBackScrollX: false,
+            zoom: this.#zoom,
+            topLimit: 64,       // sky line (the old fixed -64 offset)
+            bottomLimit: 832,   // bottom of the river
         });
+        globalThis.GAME_ZOOM = this.#zoom;
         this.#weapon = new Weapon(this.#bulletFactory);
         this.#weapon.setWeapon(1);
 
@@ -912,7 +918,7 @@ export default class Game {
             this.#entities.push(this.#hero);
             this.#worldContainer.game.addChild(this.#hero._view);
             this.#hero.reset();
-            this.#hero.x = -this.#worldContainer.x + 160;
+            this.#hero.x = this.#viewLeft() + 160;
             this.#hero.y = 100;
             this.#weapon.setWeapon(1);
         }
@@ -1019,7 +1025,7 @@ export default class Game {
         const front = new Graphics();                 // waterline foam, bow wave, spray
         layer.addChild(back, reflection, drone, front);
 
-        drone.x = -this.#worldContainer.x - drone.width - 40;
+        drone.x = this.#viewLeft() - drone.width - 40;
         drone.y = waterline;
 
         const rand = (min, max) => min + Math.random() * (max - min);
@@ -1093,7 +1099,7 @@ export default class Game {
                     rings.push({ x: sternX - 4, y: waterline + rand(1, 4), r: 10, life: 90, max: 90 });
                 }
 
-                const screenRight = -this.#worldContainer.x + this.#pixiApp.screen.width;
+                const screenRight = this.#viewRight();
                 if (drone.x > screenRight + 40) {
                     running = false;                  // hull gone - let the wake die out
                     drone.visible = false;
@@ -1650,7 +1656,7 @@ export default class Game {
             this.checkPlatfromCollision(character, platform)
         }
 
-        if(character.type == "hero" && character.x < -this.#worldContainer.x){
+        if(character.type == "hero" && character.x < this.#viewLeft()){
             character.x = character.prevPoint.x;
         }
     }
@@ -1836,15 +1842,29 @@ export default class Game {
         return false;
     }
 
+    // Visible part of the level, in world units (the camera may zoom).
+    #viewLeft() {
+        return -this.#worldContainer.x / this.#worldContainer.scale.x;
+    }
+    #viewRight() {
+        return (this.#pixiApp.screen.width - this.#worldContainer.x) / this.#worldContainer.scale.x;
+    }
+    #viewTop() {
+        return -this.#worldContainer.y / this.#worldContainer.scale.y;
+    }
+
     #isScreenOut(entity) {
+        // below the level (fell into a pit) - the same fixed world line as
+        // before the camera could zoom / move vertically
+        const levelBottom = 768;
         if (entity.type == "heroBullet" || entity.type == "enemyBullet") {
-            return (entity.x > (this.#pixiApp.screen.width - this.#worldContainer.x)
-                || entity.x < (-this.#worldContainer.x)
-                || entity.y > this.#pixiApp.screen.height
-                || entity.y < 0);
+            return (entity.x > this.#viewRight()
+                || entity.x < this.#viewLeft()
+                || entity.y > levelBottom
+                || entity.y < this.#viewTop() - 64);
         }
         else if (entity.type == "enemy" || entity.type == "hero") {
-            return entity.x < (-this.#worldContainer.x) || entity.y > this.#pixiApp.screen.height;
+            return entity.x < this.#viewLeft() || entity.y > levelBottom;
         }
     }
 }

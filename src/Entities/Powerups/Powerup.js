@@ -46,7 +46,7 @@ export default class Powerup extends Entity{
 
     update(delta = 1){
         if(!this.isActive){
-            if(this.x - this.#target.x < (globalThis.GAME_WIDTH ?? 1024) / 2 + this.collisionBox.width){
+            if(this.x - this.#target.x < ((globalThis.GAME_WIDTH ?? 1024) / (globalThis.GAME_ZOOM ?? 1)) / 2 + this.collisionBox.width){
                 this.isActive = true;
                 this._view.visible = true;
                 // Enter from just past the left edge of the screen and fly
@@ -68,7 +68,7 @@ export default class Powerup extends Entity{
         this.y = this.#flyY + Math.sin(this.#screenX * 0.02) * this.#bobAmplitude;
 
         // Flew off the right edge without being shot - remove it.
-        if(this.#screenX > (globalThis.GAME_WIDTH ?? 1024) + this.collisionBox.width){
+        if(this.#screenX > ((globalThis.GAME_WIDTH ?? 1024) / (globalThis.GAME_ZOOM ?? 1)) + this.collisionBox.width){
             this.dead();
         }
     }
@@ -76,7 +76,7 @@ export default class Powerup extends Entity{
     // Left edge of the screen in world coordinates (the camera moves the
     // world container, so ask it where screen x=0 is).
     #screenLeft(){
-        return this._view.parent ? this._view.parent.toLocal({x: 0, y: 0}).x : this.#target.x - (globalThis.GAME_WIDTH ?? 1024) / 2;
+        return this._view.parent ? this._view.parent.toLocal({x: 0, y: 0}).x : this.#target.x - ((globalThis.GAME_WIDTH ?? 1024) / (globalThis.GAME_ZOOM ?? 1)) / 2;
     }
 
     damage(){
