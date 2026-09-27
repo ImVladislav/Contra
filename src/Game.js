@@ -795,7 +795,10 @@ export default class Game {
     }
 
     // The authentic pixel-font GAME OVER graphic from the ROM, tinted per
-    // player color, instead of a rendered web font.
+    // player color, instead of a rendered web font. Shown briefly on its
+    // own, then hands off to a proper full-screen aftermath card (same
+    // visual language as the win credits screen) instead of a caption
+    // crammed under the pixel sprite.
     #showGameOver(){
         const texture = this.#assets.getTexture(this.#activeCharacterIndex == 1 ? "player_2_game_over" : "player_1_game_over");
         const sprite = new Sprite(texture);
@@ -803,24 +806,64 @@ export default class Game {
         sprite.x = this.#pixiApp.screen.width/2 - sprite.width/2;
         sprite.y = this.#pixiApp.screen.height/2 - sprite.height/2;
 
-        const line = new Text("Дев'ятий не виходить на зв'язок...", new TextStyle({
-            fontFamily: "Arial",
-            fontSize: 22,
-            fill: 0xa9c6d9,
-        }));
-        line.x = this.#pixiApp.screen.width/2 - line.width/2;
-        line.y = sprite.y + sprite.height + 24;
-
         const gameOver = new Container();
-        gameOver.addChild(sprite, line);
+        gameOver.addChild(sprite);
 
         this.#statusText?.destroy({ children: true });
         this.#statusText = gameOver;
         this.#pixiApp.stage.addChild(gameOver);
 
         window.setTimeout(() => {
+            this.#showGameOverAftermath();
+        }, 1800);
+    }
+
+    // Full-screen "mission failed" card shown after the pixel GAME OVER
+    // beat - same black-background/Impact-title/Arial-body language as
+    // #showCredits, so a loss reads as a proper story moment, not a
+    // one-line caption tacked onto the arcade graphic.
+    #showGameOverAftermath(){
+        const w = this.#pixiApp.screen.width;
+        const h = this.#pixiApp.screen.height;
+
+        const container = new Container();
+        const background = new Graphics();
+        background.beginFill(0x000000).drawRect(0, 0, w, h).endFill();
+        container.addChild(background);
+
+        const title = new Text("МІСІЮ ЗІРВАНО", new TextStyle({
+            fontFamily: "Impact",
+            fontSize: 54,
+            fill: [0xffffff, 0xdd0000],
+            stroke: 0x000000,
+            strokeThickness: 6,
+            letterSpacing: 6,
+        }));
+        title.anchor.set(0.5, 0);
+        title.x = w / 2;
+        title.y = h / 2 - 90;
+        container.addChild(title);
+
+        const line = new Text("На жаль, місію довелося згорнути, а Дев'ятий відступив у безпечне місце.", new TextStyle({
+            fontFamily: "Arial",
+            fontSize: 22,
+            fill: 0xa9c6d9,
+            wordWrap: true,
+            wordWrapWidth: w - 160,
+            align: "center",
+        }));
+        line.anchor.set(0.5, 0);
+        line.x = w / 2;
+        line.y = title.y + title.height + 24;
+        container.addChild(line);
+
+        this.#statusText?.destroy({ children: true });
+        this.#statusText = container;
+        this.#pixiApp.stage.addChild(container);
+
+        window.setTimeout(() => {
             this.#returnToMainMenu();
-        }, 3000);
+        }, 3200);
     }
 
     // Mission opening: an unmanned armed sea drone (cut out of the reference
@@ -1638,6 +1681,7 @@ export default class Game {
             this.#hero.x = 6656 - 250;
             this.#hero.y = 100;
         };
+
     }
 
     getArrowButtonContext() {
