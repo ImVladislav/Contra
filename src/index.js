@@ -1,4 +1,4 @@
-import Game from "./Game.js"
+import Game from "./Game.js?v=5"
 import * as PIXI from "../lib/pixi.mjs"
 import AssetsFactory from "./AssetsFactory.js";
 
@@ -8,20 +8,75 @@ gameViewport.className = "game-viewport";
 // Retro look: no texture smoothing, pixels stay crisp when scaled.
 PIXI.BaseTexture.defaultOptions.scaleMode = PIXI.SCALE_MODES.NEAREST;
 
+// The game is always 768 units tall. On a PC the view is the classic 4:3
+// (1024 wide); on a phone it is as wide as the phone's landscape screen, so
+// the picture fills the whole display instead of sitting in a small 4:3 box
+// with black bars (the camera, menus and background all read this width).
+const GAME_HEIGHT = 768;
+const computeGameWidth = () => {
+    if (!window.matchMedia("(pointer: coarse)").matches) {
+        return 1024;
+    }
+    const longSide = Math.max(window.innerWidth, window.innerHeight);
+    const shortSide = Math.min(window.innerWidth, window.innerHeight);
+    const aspect = longSide / Math.max(shortSide, 1);
+    const width = Math.min(Math.max(GAME_HEIGHT * aspect, 1024), 1824);
+    return Math.round(width / 2) * 2;
+};
+let GAME_WIDTH = computeGameWidth();
+globalThis.GAME_WIDTH = GAME_WIDTH;
+
 const pixiApp = new PIXI.Application({
-    width: 1024,
-    height: 768,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
 });
+
+// Fit the view into what is really visible: the visual viewport (without
+// the browser's bars) minus the notch / rounded-corner safe areas, so no
+// edge of the game is ever cut off.
+const fitGameViewport = () => {
+    const bodyStyle = getComputedStyle(document.body);
+    const insetX = parseFloat(bodyStyle.paddingLeft) + parseFloat(bodyStyle.paddingRight);
+    const insetY = parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
+    const visible = window.visualViewport;
+    const availWidth = (visible ? visible.width : window.innerWidth) - insetX;
+    const availHeight = (visible ? visible.height : window.innerHeight) - insetY;
+    const aspect = GAME_WIDTH / GAME_HEIGHT;
+    let width = availWidth;
+    let height = width / aspect;
+    if (height > availHeight) {
+        height = availHeight;
+        width = height * aspect;
+    }
+    gameViewport.style.width = `${Math.floor(width)}px`;
+    gameViewport.style.height = `${Math.floor(height)}px`;
+};
+// On every resize: re-pick the game width (phone <-> PC, rotation, browser
+// bars, dev-tools device mode) and re-fit the view.
+let game;
+const onViewportChange = () => {
+    const width = computeGameWidth();
+    if (game && Math.abs(width - GAME_WIDTH) > 8) {
+        GAME_WIDTH = width;
+        globalThis.GAME_WIDTH = width;
+        game.resizeView(width);
+    }
+    fitGameViewport();
+};
+window.addEventListener("resize", onViewportChange);
+window.addEventListener("orientationchange", () => setTimeout(onViewportChange, 250));
+window.visualViewport?.addEventListener("resize", onViewportChange);
 
 const manifest = await PIXI.Assets.load("./assets/sprites/manifest.json");
 await PIXI.Assets.load(manifest.sprites.map((name) => `./assets/sprites/${name}.png`));
 
 const assets = new AssetsFactory();
 
-const game = new Game(pixiApp, assets);
+game = new Game(pixiApp, assets);
 
 gameViewport.appendChild(pixiApp.view);
 document.body.appendChild(gameViewport);
+fitGameViewport();
 
 document.addEventListener("keydown", (key) => game.keyboardProcessor.onKeyDown(key));
 document.addEventListener("keyup", (key) => game.keyboardProcessor.onKeyUp(key));
@@ -34,10 +89,9 @@ touchControls.innerHTML = `
         <div class="touch-stick"><div class="touch-stick-knob"></div></div>
     </div>
     <div class="touch-actions">
-        <button class="touch-button touch-start" data-keys="Enter" aria-label="Почати або підтвердити">START</button>
         <button class="touch-button touch-jump" data-keys="Space" aria-label="Стрибок">JUMP</button>
         <button class="touch-button touch-fire" data-keys="KeyA" aria-label="Стріляти">FIRE</button>
-        <button class="touch-button touch-pause" data-keys="Escape" aria-label="Пауза">&#10074;&#10074;</button>
+        <button class="touch-button touch-pause" data-keys="Escape" aria-label="Пауза">ПАУЗА</button>
     </div>
 `;
 document.body.appendChild(touchControls);
@@ -133,6 +187,27 @@ joystick.addEventListener("pointerup", releaseJoystick);
 joystick.addEventListener("pointercancel", releaseJoystick);
 joystick.addEventListener("lostpointercapture", releaseJoystick);
 
+// Secret code: FIRE x4, then JUMP x4 (taps less than 2 s apart) switches on
+// "Непереможний Дев'ятий" (god mode) - the phone/tablet replacement for the
+// "Безсмертя" checkbox.
+const CHEAT_CODE = ["fire", "fire", "fire", "fire", "jump", "jump", "jump", "jump"];
+let cheatTaps = [];
+let lastCheatTap = 0;
+const registerCheatTap = (button) => {
+    const name = button.classList.contains("touch-fire") ? "fire" : button.classList.contains("touch-jump") ? "jump" : "other";
+    const now = performance.now();
+    if (now - lastCheatTap > 2000) {
+        cheatTaps = [];
+    }
+    lastCheatTap = now;
+    cheatTaps.push(name);
+    cheatTaps = cheatTaps.slice(-CHEAT_CODE.length);
+    if (cheatTaps.length == CHEAT_CODE.length && cheatTaps.every((tap, i) => tap == CHEAT_CODE[i])) {
+        cheatTaps = [];
+        game.enableInvincibleCheat();
+    }
+};
+
 touchControls.querySelectorAll(".touch-actions [data-keys]").forEach((button) => {
     const keyCodes = button.dataset.keys.split(",");
     const pressedKeys = new Set();
@@ -155,9 +230,26 @@ touchControls.querySelectorAll(".touch-actions [data-keys]").forEach((button) =>
     };
 
     button.addEventListener("pointerdown", press);
+    button.addEventListener("pointerdown", () => registerCheatTap(button));
     button.addEventListener("pointerup", release);
     button.addEventListener("pointercancel", release);
     button.addEventListener("lostpointercapture", release);
 });
 
 pixiApp.ticker.add(game.update, game);
+
+// Menus are driven by tapping the items, so the stick and buttons only show
+// while actually playing.
+let lastMenuState;
+pixiApp.ticker.add(() => {
+    const inMenu = game.menuMode != "playing";
+    if (inMenu !== lastMenuState) {
+        lastMenuState = inMenu;
+        touchControls.classList.toggle("is-menu", inMenu);
+        if (inMenu) {
+            joystickKeys.forEach(releaseTouchKey);
+            joystickKeys = new Set();
+            joystickKnob.style.transform = "translate(-50%, -50%)";
+        }
+    }
+});

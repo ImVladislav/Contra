@@ -1,5 +1,5 @@
 import { AnimatedSprite, Container, Graphics, Sprite, Text, TextStyle } from "../lib/pixi.mjs";
-import Camera from "./Camera.js";
+import Camera from "./Camera.js?v=4";
 import BulletFactory from "./Entities/Bullets/BulletFactory.js";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
 import HeroFactory from "./Entities/Hero/HeroFactory.js";
@@ -40,14 +40,33 @@ export default class Game {
     #endingTick;
     #seaDroneTick;
     #seaDroneCleanup;
+    #background;
+    #isTouch = window.matchMedia("(pointer: coarse)").matches;
 
     keyboardProcessor;
+
+    // index.js hides the on-screen stick/buttons whenever this isn't "playing"
+    get menuMode() {
+        return this.#menuMode;
+    }
 
     constructor(pixiApp, assets) {
         this.#pixiApp = pixiApp;
         this.#assets = assets;
 
-        this.#pixiApp.stage.addChild(new StaticBackground(this.#pixiApp.screen, assets));
+        this.#background = new StaticBackground(this.#pixiApp.screen, assets);
+        this.#pixiApp.stage.addChild(this.#background);
+
+        // Touch: tapping anywhere skips the ending scene / closes the credits
+        // (menu items have their own tap handlers).
+        this.#pixiApp.stage.eventMode = "static";
+        this.#pixiApp.stage.hitArea = this.#pixiApp.screen;
+        this.#pixiApp.stage.on("pointertap", () => {
+            if (this.#menuMode == "cutscene" || this.#menuMode == "credits") {
+                this.#handleMenuKey("Enter");
+            }
+        });
+
         this.keyboardProcessor = new KeyboardProcessor(this);
         this.setKeys();
         this.#showMainMenu();
@@ -78,6 +97,88 @@ export default class Game {
         }
 
         this.#checkGameStatus();
+    }
+
+    // Secret code on the touch buttons: "Непереможний Дев'ятий".
+    enableInvincibleCheat() {
+        this.#isGodModeEnabled = true;
+        if (this.#hero && !this.#hero.isDead) {
+            this.#hero.setGodMode(true);
+        }
+        const checkbox = document.querySelector("#game-godmode-checkbox input");
+        if (checkbox) {
+            checkbox.checked = true;
+        }
+        this.#showCheatModal();
+    }
+
+    #showCheatModal() {
+        document.getElementById("cheat-modal")?.remove();
+        const modal = document.createElement("div");
+        modal.id = "cheat-modal";
+        modal.className = "cheat-modal";
+        modal.innerHTML = `
+            <div class="cheat-modal__card">
+                <div class="cheat-modal__icon">9</div>
+                <div class="cheat-modal__title">Режим «Непереможний Дев'ятий»</div>
+                <div class="cheat-modal__text">Увімкнено. Кулі й вороги більше не страшні.</div>
+            </div>
+        `;
+        const close = () => modal.remove();
+        modal.addEventListener("pointerdown", close);
+        document.body.appendChild(modal);
+        window.setTimeout(close, 2800);
+    }
+
+    // The view got a new width (see index.js): rebuild what depends on it.
+    resizeView(width) {
+        this.#pixiApp.renderer.resize(width, this.#pixiApp.screen.height);
+        const index = this.#pixiApp.stage.getChildIndex(this.#background);
+        this.#background.destroy({ children: true });
+        this.#background = new StaticBackground(this.#pixiApp.screen, this.#assets);
+        this.#pixiApp.stage.addChildAt(this.#background, index);
+        this.#camera?.resize?.(width);
+
+        if (this.#menuMode == "main") {
+            const selected = this.#selectedMenuOption;
+            this.#showMainMenu();
+            this.#selectedMenuOption = selected;
+            this.#updateMenuSelection(this.#menuContainer, this.#menuContainer.optionCount);
+        }
+        else if (this.#menuMode == "briefing") {
+            this.#showBriefing();
+        }
+        else if (this.#menuMode == "pause") {
+            this.#menuContainer?.destroy({ children: true });
+            this.#showPauseMenu();
+        }
+        else if (this.#menuMode == "orientation") {
+            this.#showOrientationMenu();
+        }
+    }
+
+    // Touch: tapping a menu item selects and confirms it in one go.
+    #makeMenuTap(target, index) {
+        target.eventMode = "static";
+        target.cursor = "pointer";
+        target.on("pointertap", (event) => {
+            event.stopPropagation();
+            const menu = this.#menuContainer;
+            if (!menu || menu.destroyed) {
+                return;
+            }
+            this.#selectedMenuOption = index;
+            this.#updateMenuSelection(menu, menu.optionCount);
+            this.#handleMenuKey("Enter");
+        });
+    }
+
+    // A transparent tappable rectangle (bigger than the text itself).
+    #addMenuHitArea(container, index, x, y, width, height) {
+        const hit = new Graphics();
+        hit.beginFill(0xffffff, 0.001).drawRect(x, y, width, height).endFill();
+        container.addChild(hit);
+        this.#makeMenuTap(hit, index);
     }
 
     setMobileLandscape(isLandscape) {
@@ -240,6 +341,11 @@ export default class Game {
         if (existing) {
             existing.remove();
         }
+        // Phones and tablets: no switch - there it is a secret code instead
+        // (4x FIRE then 4x JUMP, see index.js -> enableInvincibleCheat()).
+        if (this.#isTouch) {
+            return;
+        }
 
         const wrapper = document.createElement("label");
         wrapper.id = "game-godmode-checkbox";
@@ -302,7 +408,8 @@ export default class Game {
     #showPauseMenu() {
         this.#menuMode = "pause";
         this.#selectedMenuOption = 0;
-        this.#menuContainer = this.#createMenu("ПАУЗА", ["Продовжити", "Головне меню"], "Стрілки - вибір, Enter - підтвердити");
+        this.#menuContainer = this.#createMenu("ПАУЗА", ["Продовжити", "Головне меню"],
+            this.#isTouch ? "Торкніться пункту, щоб вибрати" : "Стрілки - вибір, Enter - підтвердити");
     }
 
     #showOrientationMenu() {
@@ -318,8 +425,10 @@ export default class Game {
         background.beginFill(0x07131f, 0.92).drawRect(0, 0, this.#pixiApp.screen.width, this.#pixiApp.screen.height).endFill();
         container.addChild(background);
 
-        const titleStyle = new TextStyle({ fontFamily: "Impact", fontSize: 56, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6 });
-        const hintStyle = new TextStyle({ fontFamily: "Arial", fontSize: 18, fill: 0xa9c6d9 });
+        // on a phone the whole view is scaled down ~2x, so everything is drawn bigger
+        const touch = this.#isTouch;
+        const titleStyle = new TextStyle({ fontFamily: "Impact", fontSize: touch ? 80 : 56, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6 });
+        const hintStyle = new TextStyle({ fontFamily: "Arial", fontSize: touch ? 28 : 18, fill: 0xa9c6d9 });
 
         const titleText = new Text(title, titleStyle);
         titleText.anchor.set(0.5);
@@ -328,18 +437,19 @@ export default class Game {
         container.addChild(titleText);
 
         options.forEach((option, index) => {
-            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: 34, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4 }));
+            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: touch ? 56 : 34, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4 }));
             text.anchor.set(0.5);
             text.x = this.#pixiApp.screen.width / 2;
-            text.y = 330 + index * 65;
+            text.y = (touch ? 340 : 330) + index * (touch ? 105 : 65);
             text.name = `menu-option-${index}`;
             container.addChild(text);
+            this.#addMenuHitArea(container, index, text.x - 300, text.y - 48, 600, 96);
         });
 
         const hintText = new Text(hint, hintStyle);
         hintText.anchor.set(0.5);
         hintText.x = this.#pixiApp.screen.width / 2;
-        hintText.y = 560;
+        hintText.y = touch ? 620 : 560;
         container.addChild(hintText);
         container.optionCount = options.length;
         this.#updateMenuSelection(container, options.length);
@@ -488,9 +598,22 @@ export default class Game {
             text.y = rowY + rowH / 2;
             text.name = `menu-option-${index}`;
             container.addChild(text);
+            this.#addMenuHitArea(container, index, rowX, rowY, rowW, rowH);
         });
 
-        // Bottom control hints, each key drawn as its own keycap badge.
+        // Bottom control hints, each key drawn as its own keycap badge
+        // (on a touchscreen: just "tap an item").
+        if (this.#isTouch) {
+            const touchHint = new Text("Торкніться пункту меню, щоб почати", new TextStyle({ fontFamily: "Arial", fontSize: 20, fill: 0xa9c6d9 }));
+            touchHint.anchor.set(0.5);
+            touchHint.x = w / 2;
+            touchHint.y = h - 45;
+            container.addChild(touchHint);
+            container.optionCount = options.length;
+            this.#updateMenuSelection(container, options.length);
+            this.#pixiApp.stage.addChild(container);
+            return container;
+        }
         const keys = [
             ["↑↓", "ВИБІР"],
             ["ENTER", "ПІДТВЕРДИТИ"],
@@ -575,8 +698,8 @@ export default class Game {
         ].join("\n\n");
         const body = new Text(lore, new TextStyle({
             fontFamily: "Arial",
-            fontSize: 20,
-            lineHeight: 29,
+            fontSize: this.#isTouch ? 27 : 20,
+            lineHeight: this.#isTouch ? 37 : 29,
             fill: 0xdfeffb,
             wordWrap: true,
             wordWrapWidth: w - 220,
@@ -587,13 +710,14 @@ export default class Game {
 
         const options = ["ПОЧАТИ МІСІЮ", "НАЗАД"];
         options.forEach((option, index) => {
-            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: 36, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
+            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: this.#isTouch ? 48 : 36, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
             text.baseText = option;
             text.anchor.set(0, 0.5);
-            text.x = index == 0 ? w / 2 - 280 : w / 2 + 100;
+            text.x = index == 0 ? w / 2 - (this.#isTouch ? 380 : 280) : w / 2 + 100;
             text.y = h - 70;
             text.name = `menu-option-${index}`;
             container.addChild(text);
+            this.#addMenuHitArea(container, index, text.x - 30, text.y - 40, this.#isTouch ? 400 : 300, 80);
         });
 
         container.optionCount = options.length;
@@ -1473,11 +1597,11 @@ export default class Game {
     }
 
     #checkDamage(entity){
-        if (entity.type == "hero" && this.#isGodModeEnabled) {
-            return;
-        }
+        // God mode only protects from damage - weapon pick-ups below must
+        // still work (they used to be skipped together with the damage).
+        const isHeroImmortal = entity.type == "hero" && this.#isGodModeEnabled;
 
-        const damagers = this.#entities.filter(damager => ((entity.type == "enemy" || entity.type == "powerupBox") && damager.type == "heroBullet")
+        const damagers = isHeroImmortal ? [] : this.#entities.filter(damager => ((entity.type == "enemy" || entity.type == "powerupBox") && damager.type == "heroBullet")
                                                         ||(entity.type == "hero" && (damager.type == "enemyBullet" || damager.type == "enemy")));
         
         for (let damager of damagers){
@@ -1500,7 +1624,11 @@ export default class Game {
                 // "barrier" (B) is not a weapon swap - it grants a temporary
                 // shield using the invulnerability the hero already supports.
                 if(powerup.powerupType == "barrier"){
-                    this.#hero.setInvulnerable(10);
+                    // (in god mode he already can't be hurt - and setInvulnerable
+                    // would switch god mode off)
+                    if (!this.#isGodModeEnabled) {
+                        this.#hero.setInvulnerable(10);
+                    }
                 }
                 else{
                     this.#weapon.setWeapon(powerup.powerupType);
