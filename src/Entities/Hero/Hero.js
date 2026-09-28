@@ -176,7 +176,12 @@ export default class Hero extends Entity{
             this._view.showParachute(false);
         }
 
-        const enteredOrLeftWater = isWater != this.#isInWater;
+        // #isInWater was already cleared at the start of this frame (update()),
+        // so stepping out of the river onto land has to be detected against
+        // last frame's value - otherwise he kept the swimming pose and foam
+        // while walking on the shore.
+        const wasInWaterBefore = this.#isInWater || this.#wasInWater;
+        const enteredOrLeftWater = isWater != wasInWaterBefore;
         if (isWater && !this.#wasInWater) {
             this._view.showSplash();
         }

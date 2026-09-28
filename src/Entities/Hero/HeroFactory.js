@@ -1,4 +1,4 @@
-import Hero from "./Hero.js";
+import Hero from "./Hero.js?v=9";
 import HeroView from "./HeroView.js";
 
 export default class HeroFactory{

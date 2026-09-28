@@ -2,7 +2,7 @@ import { AnimatedSprite, Container, Graphics, Sprite, Text, TextStyle } from "..
 import Camera from "./Camera.js?v=8";
 import BulletFactory from "./Entities/Bullets/BulletFactory.js?v=8";
 import EnemiesFactory from "./Entities/Enemies/EnemiesFactory.js";
-import HeroFactory from "./Entities/Hero/HeroFactory.js";
+import HeroFactory from "./Entities/Hero/HeroFactory.js?v=9";
 import PlatformFactory from "./Entities/Platforms/PlatformFactory.js";
 import PowerupsFactory from "./Entities/Powerups/PowerupsFactory.js";
 import KeyboardProcessor from "./KeyboardProcessor.js";

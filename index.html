@@ -11,6 +11,16 @@
     <link rel="icon" href="favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+    <!-- "Add to Home Screen" launches with no browser chrome at all (URL
+         bar included) - the only fully reliable cross-platform way to get a
+         true fullscreen app on a phone, since the Fullscreen API alone
+         can't hide the address bar in an ordinary browser tab. -->
+    <link rel="manifest" href="site.webmanifest" />
+    <meta name="theme-color" content="#07131f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Дев'ятий" />
     <style>
       html,
       body {
@@ -484,6 +494,6 @@
       <div class="rotate-overlay__title">Поверніть телефон</div>
       <div class="rotate-overlay__text">Дев'ятий воює лише горизонтально - поверніть пристрій боком, щоб продовжити місію.</div>
     </div>
-    <script src="src/index.js?v=8" type="module"></script>
+    <script src="src/index.js?v=9" type="module"></script>
   </body>
 </html>

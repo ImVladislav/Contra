@@ -1,4 +1,4 @@
-import Game from "./Game.js?v=8"
+import Game from "./Game.js?v=9"
 import * as PIXI from "../lib/pixi.mjs"
 import AssetsFactory from "./AssetsFactory.js";
 
@@ -97,6 +97,22 @@ touchControls.innerHTML = `
 document.body.appendChild(touchControls);
 
 const isTouchDevice = window.matchMedia("(pointer: coarse)").matches;
+
+// Best-effort fullscreen for phones playing in an ordinary browser tab
+// (not installed to the home screen): the Fullscreen API needs a genuine
+// user gesture, so it's requested on the very first tap. It won't hide the
+// address bar on every browser (notably iOS Safari), but it's a free extra
+// on ones that do support it (Android Chrome and friends) - the manifest
+// + "Add to Home Screen" route above is what reliably removes the bar
+// everywhere.
+if (isTouchDevice) {
+    const requestFullscreenOnce = () => {
+        document.documentElement.requestFullscreen?.().catch(() => {});
+        document.removeEventListener("pointerdown", requestFullscreenOnce);
+    };
+    document.addEventListener("pointerdown", requestFullscreenOnce, { once: true });
+}
+
 const orientationQuery = window.matchMedia("(orientation: landscape)");
 const updateMobileOrientation = () => {
     if (isTouchDevice) {
