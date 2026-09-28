@@ -81,6 +81,17 @@ fitGameViewport();
 document.addEventListener("keydown", (key) => game.keyboardProcessor.onKeyDown(key));
 document.addEventListener("keyup", (key) => game.keyboardProcessor.onKeyUp(key));
 
+// Block pinch/double-tap zoom (mashing two on-screen buttons at once
+// otherwise triggers it) - `touch-action` in the stylesheet already
+// covers most browsers, this is the fallback for the ones that don't
+// respect it (older iOS Safari fires `gesturestart` for pinch regardless).
+document.addEventListener("gesturestart", (event) => event.preventDefault());
+document.addEventListener("touchmove", (event) => {
+    if (event.touches.length > 1) {
+        event.preventDefault();
+    }
+}, { passive: false });
+
 const touchControls = document.createElement("div");
 touchControls.className = "touch-controls";
 touchControls.setAttribute("aria-label", "Мобільне керування");

@@ -22,6 +22,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Дев'ятий" />
     <style>
+      * {
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+
       html,
       body {
         width: 100%;
@@ -37,6 +44,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        touch-action: none;
       }
 
       .game-viewport {
