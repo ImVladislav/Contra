@@ -1380,13 +1380,14 @@ export default class Game {
         const dictatorStopX = gateX - 110;
         const heroStopX = dictatorStopX - 170; // first stops at a distance, walks up later
 
-        // Side-view pixel sprites (48x72), facing left: 4 walk frames,
-        // standing, going down on one knee, kneeling with hands up.
+        // Side-view sprites (~277x410, character ~207x401 within that),
+        // facing left: 4 walk frames, standing, going down on one knee,
+        // kneeling with hands up.
         const walkTextures = ["dictator0000", "dictator0001", "dictator0002", "dictator0003"].map((name) => this.#assets.getTexture(name));
         const dictator = new AnimatedSprite(walkTextures);
         dictator.animationSpeed = 1 / 7;
         dictator.anchor.set(0.5, 1);
-        dictator.scale.set(1.35);
+        dictator.scale.set(0.235); // matches the old 48x72 art's on-screen size
         dictator.x = gateX;
         dictator.y = groundY + 4;
         dictator.alpha = 0;
@@ -1415,7 +1416,7 @@ export default class Game {
 
         const head = new Sprite(this.#assets.getTexture("dictatorhead0000"));
         head.anchor.set(0.5);
-        head.scale.set(1.35);
+        head.scale.set(0.16); // matches the old 17x17 art's on-screen size
         head.visible = false;
         const headMotion = { vx: 0, vy: 0, bounced: false };
         const flash = new Graphics();
