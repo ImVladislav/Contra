@@ -183,17 +183,40 @@
           touch-action: none;
         }
 
-        .touch-joystick,
-        .touch-actions {
-          position: relative;
+        /* The real touch target is .touch-move-zone (the whole left half of
+           the screen) - this is just the visual ring, so it can pop up
+           wherever the finger actually landed instead of one fixed spot. */
+        .touch-joystick {
+          position: fixed;
+          left: 20%;
+          top: 80%;
           width: clamp(112px, 25vw, 168px);
           height: clamp(112px, 25vw, 168px);
+          transform: translate(-50%, -50%);
+          pointer-events: none;
+          opacity: 0;
+          transition: opacity 0.15s ease;
+        }
+        .touch-joystick.is-active {
+          opacity: 1;
+        }
+
+        .touch-move-zone {
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 58%;
           pointer-events: auto;
+          touch-action: none;
         }
 
         .touch-actions {
+          position: relative;
           width: clamp(160px, 35vw, 248px);
           height: clamp(112px, 25vw, 168px);
+          margin-left: auto;
+          pointer-events: auto;
         }
 
         .touch-stick {
@@ -269,13 +292,22 @@
         }
         .touch-jump {
           bottom: 0;
-          left: 15%;
+          left: 0;
         }
         .touch-fire {
-          right: 15%;
+          right: 0;
           bottom: 0;
           color: #ffd166;
           border-color: #ffd166;
+        }
+        .touch-jump,
+        .touch-fire {
+          background: rgba(7, 19, 31, 0.28);
+        }
+        .touch-actions .touch-jump,
+        .touch-actions .touch-fire {
+          width: clamp(56px, 15vw, 92px);
+          height: clamp(56px, 15vw, 92px);
         }
       }
 
@@ -300,6 +332,12 @@
           width: clamp(40px, 14vh, 64px);
           height: clamp(40px, 14vh, 64px);
           font-size: clamp(10px, 3.2vh, 15px);
+        }
+        .touch-actions .touch-jump,
+        .touch-actions .touch-fire {
+          width: clamp(50px, 18vh, 80px);
+          height: clamp(50px, 18vh, 80px);
+          font-size: clamp(12px, 3.8vh, 17px);
         }
       }
 

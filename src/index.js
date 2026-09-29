@@ -107,6 +107,7 @@ const touchControls = document.createElement("div");
 touchControls.className = "touch-controls";
 touchControls.setAttribute("aria-label", "Мобільне керування");
 touchControls.innerHTML = `
+    <div class="touch-move-zone" aria-label="Керування рухом - торкніться будь-де зліва"></div>
     <div class="touch-joystick" aria-label="Віртуальний джойстик">
         <div class="touch-stick"><div class="touch-stick-knob"></div></div>
     </div>
@@ -162,6 +163,7 @@ const releaseTouchKey = (keyCode) => {
     }
 };
 
+const moveZone = touchControls.querySelector(".touch-move-zone");
 const joystick = touchControls.querySelector(".touch-joystick");
 const joystickKnob = touchControls.querySelector(".touch-stick-knob");
 let joystickPointerId;
@@ -208,22 +210,28 @@ const releaseJoystick = (event) => {
     joystickKeys = new Set();
     joystickPointerId = undefined;
     joystickKnob.style.transform = "translate(-50%, -50%)";
+    joystick.classList.remove("is-active");
 };
-joystick.addEventListener("pointerdown", (event) => {
+moveZone.addEventListener("pointerdown", (event) => {
     event.preventDefault();
     joystickPointerId = event.pointerId;
-    joystick.setPointerCapture?.(event.pointerId);
+    moveZone.setPointerCapture?.(event.pointerId);
+    // Ring pops up centered right where the finger landed - anywhere in the
+    // zone works, not just one fixed spot.
+    joystick.style.left = `${event.clientX}px`;
+    joystick.style.top = `${event.clientY}px`;
+    joystick.classList.add("is-active");
     updateJoystick(event);
 });
-joystick.addEventListener("pointermove", (event) => {
+moveZone.addEventListener("pointermove", (event) => {
     if (event.pointerId == joystickPointerId) {
         event.preventDefault();
         updateJoystick(event);
     }
 });
-joystick.addEventListener("pointerup", releaseJoystick);
-joystick.addEventListener("pointercancel", releaseJoystick);
-joystick.addEventListener("lostpointercapture", releaseJoystick);
+moveZone.addEventListener("pointerup", releaseJoystick);
+moveZone.addEventListener("pointercancel", releaseJoystick);
+moveZone.addEventListener("lostpointercapture", releaseJoystick);
 
 // Secret code: FIRE x4, then JUMP x4 (taps less than 2 s apart) switches on
 // "Непереможний Дев'ятий" (god mode) - the phone/tablet replacement for the
@@ -288,6 +296,7 @@ pixiApp.ticker.add(() => {
             joystickKeys.forEach(releaseTouchKey);
             joystickKeys = new Set();
             joystickKnob.style.transform = "translate(-50%, -50%)";
+            joystick.classList.remove("is-active");
         }
     }
 });

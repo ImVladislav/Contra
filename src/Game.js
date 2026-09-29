@@ -293,7 +293,9 @@ export default class Game {
         const medalTexture = this.#assets.getTexture(this.#activeCharacterIndex == 1 ? "player_2_lives_medal" : "player_1_lives_medal");
         for (let i = 0; i < this.#lives; i++) {
             const icon = new Sprite(medalTexture);
-            icon.scale.set(1.25); // HD medal 16x32 -> 20x40, same size as before
+            // Bigger on touch/phone screens only - desktop keeps the original size.
+            const isTouchDevice = window.matchMedia?.("(pointer: coarse)").matches;
+            icon.scale.set(isTouchDevice ? 1.9 : 1.25);
             icon.x = i * (icon.width + 8);
             this.#livesText.addChild(icon);
         }
