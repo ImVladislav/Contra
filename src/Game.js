@@ -441,7 +441,7 @@ export default class Game {
 
         // on a phone the whole view is scaled down ~2x, so everything is drawn bigger
         const touch = this.#isTouch;
-        const titleStyle = new TextStyle({ fontFamily: "Impact", fontSize: touch ? 80 : 56, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6 });
+        const titleStyle = new TextStyle({ fontFamily: "Anton", fontSize: touch ? 80 : 56, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6 });
         const hintStyle = new TextStyle({ fontFamily: "Arial", fontSize: touch ? 28 : 18, fill: 0xa9c6d9 });
 
         const titleText = new Text(title, titleStyle);
@@ -451,7 +451,7 @@ export default class Game {
         container.addChild(titleText);
 
         options.forEach((option, index) => {
-            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: touch ? 56 : 34, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4 }));
+            const text = new Text(option, new TextStyle({ fontFamily: "Anton", fontSize: touch ? 56 : 34, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4 }));
             text.anchor.set(0.5);
             text.x = this.#pixiApp.screen.width / 2;
             text.y = (touch ? 340 : 330) + index * (touch ? 105 : 65);
@@ -511,7 +511,7 @@ export default class Game {
         container.addChild(operation);
 
         const title = new Text("ДЕВ'ЯТИЙ", new TextStyle({
-            fontFamily: "Impact",
+            fontFamily: "Anton",
             fontSize: 118,
             fill: [0xfff1b8, 0xffb000],
             stroke: 0x3a0a05,
@@ -527,7 +527,7 @@ export default class Game {
         title.y = 180;
         container.addChild(title);
 
-        const subtitle = new Text("ДЕСАНТ У БУНКЕР ДИКТАТОРА", new TextStyle({ fontFamily: "Impact", fontSize: 32, fill: 0xff4b3a, stroke: 0x000000, strokeThickness: 5, letterSpacing: 5 }));
+        const subtitle = new Text("ДЕСАНТ У БУНКЕР ДИКТАТОРА", new TextStyle({ fontFamily: "Anton", fontSize: 32, fill: 0xff4b3a, stroke: 0x000000, strokeThickness: 5, letterSpacing: 5 }));
         subtitle.anchor.set(0.5);
         subtitle.x = w / 2;
         subtitle.y = 272;
@@ -605,8 +605,12 @@ export default class Game {
             icon.y = rowY;
             container.addChild(badge, icon);
 
-            const text = new Text(option.label, new TextStyle({ fontFamily: "Impact", fontSize: 38, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
-            text.baseText = option.label;
+            // No `baseText` here on purpose: this menu already shows the
+            // selected row via the red bgOn highlight and its own circular
+            // icon badge, so #updateMenuSelection's generic "► " text
+            // prefix would just draw a second, redundant play/arrow glyph
+            // right next to the one already in the icon.
+            const text = new Text(option.label, new TextStyle({ fontFamily: "Anton", fontSize: 38, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
             text.anchor.set(0, 0.5);
             text.x = rowX + 76;
             text.y = rowY + rowH / 2;
@@ -686,22 +690,69 @@ export default class Game {
         const h = this.#pixiApp.screen.height;
         const container = new Container();
 
+        const frameX = 60, frameY = 40, frameW = w - 120, frameH = h - 150;
+
         const background = new Graphics();
         background.beginFill(0x050b12, 0.94).drawRect(0, 0, w, h).endFill();
-        background.lineStyle(2, 0xffd166, 0.5).drawRoundedRect(60, 40, w - 120, h - 150, 16);
+        // Soft red glow behind the header, echoing the main menu's title so
+        // this reads as the same document/identity, not a bare debug popup.
+        for (let k = 0; k < 5; k++) {
+            background.beginFill(0x8a1a12, 0.05).drawEllipse(w / 2, frameY + 66, 420 - k * 50, 92 - k * 14).endFill();
+        }
+        background.lineStyle(1.5, 0xffd166, 0.35).drawRoundedRect(frameX, frameY, frameW, frameH, 16);
         container.addChild(background);
 
-        const header = new Text("БРИФІНГ", new TextStyle({ fontFamily: "Impact", fontSize: 54, fill: 0xffd166, stroke: 0x000000, strokeThickness: 6, letterSpacing: 4 }));
+        // Targeting-style corner brackets on the frame - same motif as the
+        // hero portrait elsewhere, so the dossier matches the game's look.
+        const brackets = new Graphics();
+        brackets.lineStyle(3, 0xffd166, 0.9);
+        const armLength = 26;
+        [
+            [frameX, frameY, 1, 1],
+            [frameX + frameW, frameY, -1, 1],
+            [frameX, frameY + frameH, 1, -1],
+            [frameX + frameW, frameY + frameH, -1, -1],
+        ].forEach(([cx, cy, dx, dy]) => {
+            brackets.moveTo(cx, cy + armLength * dy).lineTo(cx, cy).lineTo(cx + armLength * dx, cy);
+        });
+        container.addChild(brackets);
+
+        // The game's own name travels with this screen too, not just the
+        // main menu - a small kicker above the "БРИФІНГ" heading.
+        const kicker = new Text("ОПЕРАЦІЯ «ДЕВ'ЯТИЙ»", new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 15, fill: 0xa9c6d9, letterSpacing: 6 }));
+        kicker.anchor.set(0.5, 0);
+        kicker.x = w / 2;
+        kicker.y = frameY + 18;
+        container.addChild(kicker);
+
+        const header = new Text("БРИФІНГ", new TextStyle({
+            fontFamily: "Anton",
+            fontSize: 54,
+            fill: [0xfff1b8, 0xffb000],
+            stroke: 0x3a0a05,
+            strokeThickness: 6,
+            letterSpacing: 4,
+        }));
         header.anchor.set(0.5, 0);
         header.x = w / 2;
-        header.y = 60;
+        header.y = kicker.y + 24;
         container.addChild(header);
 
         const stamp = new Text("ЦІЛКОМ ТАЄМНО  ·  ДЛЯ ПОЗИВНОГО «ДЕВ'ЯТИЙ»", new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 15, fill: 0xff4b3a, letterSpacing: 3 }));
         stamp.anchor.set(0.5, 0);
         stamp.x = w / 2;
-        stamp.y = 128;
+        stamp.y = header.y + header.height + 4;
         container.addChild(stamp);
+
+        // Diamond-tick divider, matching the main menu's, closing off the header block.
+        const dividerY = stamp.y + stamp.height + 18;
+        const divider = new Graphics();
+        divider.lineStyle(2, 0xff4b3a, 0.6);
+        divider.moveTo(w / 2 - 230, dividerY).lineTo(w / 2 - 14, dividerY);
+        divider.moveTo(w / 2 + 14, dividerY).lineTo(w / 2 + 230, dividerY);
+        divider.lineStyle(0);
+        divider.beginFill(0xffd166).drawPolygon([w / 2, dividerY - 6, w / 2 + 7, dividerY, w / 2, dividerY + 6, w / 2 - 7, dividerY]).endFill();
+        container.addChild(divider);
 
         const lore = [
             "Диктатор сховався в бункері на далекому острові посеред джунглів. Звідти він віддає накази своїй армії і певен, що до нього ніхто не дістанеться.",
@@ -716,15 +767,93 @@ export default class Game {
             lineHeight: this.#isTouch ? 37 : 29,
             fill: 0xdfeffb,
             wordWrap: true,
-            wordWrapWidth: w - 220,
+            wordWrapWidth: frameW - 100,
         }));
-        body.x = 110;
-        body.y = 170;
-        container.addChild(body);
+        body.x = frameX + 50;
+
+        // The lore text can be taller than the space left inside the frame
+        // (short/phone screens, or the bigger touch font) - so it sits in
+        // its own scrollable viewport, masked to the frame's own inner
+        // bounds so a scrolled line can never spill past the border.
+        const viewportTop = dividerY + 20;
+        const viewportBottom = frameY + frameH - 22;
+        const viewportHeight = viewportBottom - viewportTop;
+
+        const bodyLayer = new Container();
+        bodyLayer.y = viewportTop;
+        bodyLayer.addChild(body);
+        container.addChild(bodyLayer);
+
+        const mask = new Graphics();
+        mask.beginFill(0xffffff).drawRect(frameX, viewportTop, frameW, viewportHeight).endFill();
+        mask.renderable = false; // only used for its shape, not drawn
+        container.addChild(mask);
+        bodyLayer.mask = mask;
+
+        const maxScroll = Math.max(0, body.height - viewportHeight);
+        if (maxScroll > 0) {
+            // Soft fade at the top/bottom of the viewport instead of a hard
+            // clip, so a cut-off line reads as "scroll for more" rather
+            // than a rendering glitch.
+            const fadeSteps = [[0, 0.85], [4, 0.55], [8, 0.3], [12, 0.12]];
+            const topFade = new Graphics();
+            fadeSteps.forEach(([dy, alpha]) => {
+                topFade.beginFill(0x050b12, alpha).drawRect(frameX, viewportTop + dy, frameW, 4).endFill();
+            });
+            container.addChild(topFade);
+            const bottomFade = new Graphics();
+            fadeSteps.forEach(([dy, alpha]) => {
+                bottomFade.beginFill(0x050b12, alpha).drawRect(frameX, viewportBottom - dy - 4, frameW, 4).endFill();
+            });
+            container.addChild(bottomFade);
+
+            const track = new Graphics();
+            track.beginFill(0xffffff, 0.12).drawRoundedRect(frameX + frameW - 20, viewportTop, 6, viewportHeight, 3).endFill();
+            container.addChild(track);
+
+            const thumbHeight = Math.max(30, viewportHeight * viewportHeight / body.height);
+            const thumb = new Graphics();
+            thumb.beginFill(0xffd166, 0.85).drawRoundedRect(frameX + frameW - 20, viewportTop, 6, thumbHeight, 3).endFill();
+            container.addChild(thumb);
+
+            const applyScroll = (offset) => {
+                const clamped = Math.min(0, Math.max(-maxScroll, offset));
+                bodyLayer.y = viewportTop + clamped;
+                thumb.y = (-clamped / maxScroll) * (viewportHeight - thumbHeight);
+            };
+
+            const hit = new Graphics();
+            hit.beginFill(0xffffff, 0.001).drawRect(frameX, viewportTop, frameW, viewportHeight).endFill();
+            hit.eventMode = "static";
+            hit.cursor = "grab";
+            container.addChild(hit);
+
+            let dragging = false;
+            let dragStartY = 0;
+            let dragStartOffset = 0;
+            hit.on("pointerdown", (event) => {
+                dragging = true;
+                hit.cursor = "grabbing";
+                dragStartY = event.global.y;
+                dragStartOffset = bodyLayer.y - viewportTop;
+            });
+            const stopDrag = () => { dragging = false; hit.cursor = "grab"; };
+            hit.on("pointerup", stopDrag);
+            hit.on("pointerupoutside", stopDrag);
+            hit.on("pointermove", (event) => {
+                if (!dragging) {
+                    return;
+                }
+                applyScroll(dragStartOffset + (event.global.y - dragStartY));
+            });
+            hit.on("wheel", (event) => {
+                applyScroll(bodyLayer.y - viewportTop - event.deltaY);
+            });
+        }
 
         const options = ["ПОЧАТИ МІСІЮ", "НАЗАД"];
         options.forEach((option, index) => {
-            const text = new Text(option, new TextStyle({ fontFamily: "Impact", fontSize: this.#isTouch ? 48 : 36, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
+            const text = new Text(option, new TextStyle({ fontFamily: "Anton", fontSize: this.#isTouch ? 48 : 36, fill: 0xffffff, stroke: 0x000000, strokeThickness: 4, letterSpacing: 2 }));
             text.baseText = option;
             text.anchor.set(0, 0.5);
             text.x = index == 0 ? w / 2 - (this.#isTouch ? 380 : 280) : w / 2 + 100;
@@ -970,7 +1099,7 @@ export default class Game {
         container.addChild(background);
 
         const title = new Text("МІСІЮ ЗІРВАНО", new TextStyle({
-            fontFamily: "Impact",
+            fontFamily: "Anton",
             fontSize: 54,
             fill: [0xffffff, 0xdd0000],
             stroke: 0x000000,
@@ -1534,9 +1663,9 @@ export default class Game {
         let y = 0;
         lines.forEach(([line, kind]) => {
             const style = kind == "title"
-                ? new TextStyle({ fontFamily: "Impact", fontSize: 54, fill: [0xfff1b8, 0xffb000], stroke: 0x3a0a05, strokeThickness: 6, letterSpacing: 4 })
+                ? new TextStyle({ fontFamily: "Anton", fontSize: 54, fill: [0xfff1b8, 0xffb000], stroke: 0x3a0a05, strokeThickness: 6, letterSpacing: 4 })
                 : kind == "accent"
-                    ? new TextStyle({ fontFamily: "Impact", fontSize: 34, fill: 0xff4b3a, stroke: 0x000000, strokeThickness: 4, letterSpacing: 3 })
+                    ? new TextStyle({ fontFamily: "Anton", fontSize: 34, fill: 0xff4b3a, stroke: 0x000000, strokeThickness: 4, letterSpacing: 3 })
                     : new TextStyle({ fontFamily: "Arial", fontSize: 24, fill: 0xdfeffb });
             const text = new Text(line, style);
             text.anchor.set(0.5, 0);
@@ -1578,7 +1707,7 @@ export default class Game {
 
     #showEndGame(){
         const style = new TextStyle({
-            fontFamily: "Impact",
+            fontFamily: "Anton",
             fontSize: 50,
             fill: [0xffffff, 0xdd0000],
             stroke: 0x000000,

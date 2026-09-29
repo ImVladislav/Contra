@@ -366,6 +366,7 @@ export default class PlatformFactory{
     // wall canopy instead of being part of it.
     createPalmTree(x, groundLevel){
         const tree = new Sprite(this.#assets.getTexture("palmtree0000"));
+        tree.scale.set(1.4);
         tree.x = x - tree.width / 2;
         tree.y = groundLevel - tree.height + 4;
         this.#worldContainer.background.addChild(tree);

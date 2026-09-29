@@ -70,6 +70,17 @@ window.visualViewport?.addEventListener("resize", onViewportChange);
 const manifest = await PIXI.Assets.load("./assets/sprites/manifest.json");
 await PIXI.Assets.load(manifest.sprites.map((name) => `./assets/sprites/${name}.png`));
 
+// Canvas text has no font fallback chain - if "Anton" (loaded via the
+// Google Fonts link in index.html) isn't parsed yet the moment a PIXI.Text
+// first draws with it, that text is stuck showing the browser's default
+// sans-serif forever. Waiting for it here (with a timeout so a slow/blocked
+// font host never hangs the whole game) guarantees every menu's first
+// frame already has the real font.
+await Promise.race([
+    document.fonts.load("400 64px Anton").then(() => document.fonts.ready),
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+]);
+
 const assets = new AssetsFactory();
 
 game = new Game(pixiApp, assets);

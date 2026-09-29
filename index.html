@@ -21,6 +21,18 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Дев'ятий" />
+    <!-- "Impact" (used for every headline in the game) is a Windows-only
+         system font - anywhere else it silently falls back to a plain
+         sans-serif on canvas text, since <canvas> text has no font
+         fallback chain the way CSS does. Anton is a free look-alike that
+         actually loads everywhere. index.js awaits it before building any
+         menu so the very first frame already has it, not a flash of Arial. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&display=swap"
+      rel="stylesheet"
+    />
     <style>
       * {
         -webkit-user-select: none;
@@ -63,6 +75,15 @@
         display: block;
         width: 100%;
         height: 100%;
+      }
+
+      /* Phones/tablets already have the "Непереможний Дев'ятий" secret tap
+         code as their god-mode toggle - the "Безсмертя" checkbox is a
+         desktop-only debug control and just clutters the touch UI. */
+      @media (pointer: coarse) {
+        #game-godmode-checkbox {
+          display: none !important;
+        }
       }
 
       /* Phone in landscape: the game fills the screen (its width follows
