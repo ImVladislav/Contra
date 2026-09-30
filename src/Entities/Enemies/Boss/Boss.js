@@ -2,7 +2,7 @@ import Entity from "../../Entity.js";
 
 export default class Boss extends Entity{
 
-    static MAX_HEALTH = 40;
+    static MAX_HEALTH = 15;
     #health = Boss.MAX_HEALTH;
     #hitCooldown = 0;
     #wall;
@@ -57,12 +57,15 @@ export default class Boss extends Entity{
         this._view.showDamage(stage);
     }
 
-    // 3 decal stages on the wall.
+    // 3 decal stages on the wall - scales with MAX_HEALTH the same way the
+    // door damage above does, so it doesn't need retuning by hand whenever
+    // MAX_HEALTH changes.
     #updateWallDamage(){
         if(!this.#wall || !this.#wall.showDamage){
             return;
         }
-        const stage = this.#health <= 2 ? 3 : this.#health <= 6 ? 2 : this.#health <= 10 ? 1 : 0;
+        const lost = Boss.MAX_HEALTH - this.#health;
+        const stage = Math.min(3, Math.floor(lost / (Boss.MAX_HEALTH / 4)));
         this.#wall.showDamage(stage);
     }
 }

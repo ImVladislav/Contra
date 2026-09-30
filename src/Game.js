@@ -6,6 +6,7 @@ import HeroFactory from "./Entities/Hero/HeroFactory.js?v=9";
 import PlatformFactory from "./Entities/Platforms/PlatformFactory.js";
 import PowerupsFactory from "./Entities/Powerups/PowerupsFactory.js";
 import KeyboardProcessor from "./KeyboardProcessor.js";
+import Music from "./Music.js";
 import Physics from "./Physics.js";
 import SceneFactory from "./SceneFactory.js";
 import StaticBackground from "./StaticBackground.js";
@@ -33,6 +34,7 @@ export default class Game {
     #orientationReturnMode = "main";
     #heroIntroOverlay;
     #isGodModeEnabled = false;
+    #music = new Music();
     #lives = 3;
     #livesText;
     #statusText;
@@ -107,7 +109,23 @@ export default class Game {
         this.#checkGameStatus();
     }
 
-    // Secret code on the touch buttons: "Непереможний Дев'ятий".
+    #cheatPresses = [];
+    #lastCheatPress = 0;
+    #registerCheatPress(kind) {
+        const code = ["fire", "fire", "fire", "fire", "jump", "jump", "jump", "jump"];
+        const now = performance.now();
+        if (now - this.#lastCheatPress > 2000) {
+            this.#cheatPresses = [];
+        }
+        this.#lastCheatPress = now;
+        this.#cheatPresses.push(kind);
+        this.#cheatPresses = this.#cheatPresses.slice(-code.length);
+        if (this.#cheatPresses.length == code.length && this.#cheatPresses.every((press, i) => press == code[i])) {
+            this.#cheatPresses = [];
+            this.enableInvincibleCheat();
+        }
+    }
+
     enableInvincibleCheat() {
         this.#isGodModeEnabled = true;
         if (this.#hero && !this.#hero.isDead) {
@@ -219,6 +237,7 @@ export default class Game {
         this.#menuContainer = undefined;
         this.#menuMode = "playing";
         this.#isEndGame = false;
+        this.#removeMusicCheckbox();
         this.#platforms = [];
         this.#entities = [];
 
@@ -329,6 +348,7 @@ export default class Game {
         this.#menuContainer?.destroy({ children: true });
         this.#menuContainer = this.#createTitleMenu();
         this.#createGodModeCheckbox();
+        this.#createMusicCheckbox();
     }
 
     #showBriefing() {
@@ -357,41 +377,56 @@ export default class Game {
         if (existing) {
             existing.remove();
         }
-        // Phones and tablets: no switch - there it is a secret code instead
-        // (4x FIRE then 4x JUMP, see index.js -> enableInvincibleCheat()).
-        if (this.#isTouch) {
-            return;
+        // no visible switch any more
+    }
+
+    // Placeholder default track for now (a small procedural loop - see
+    // Music.js) until a real recorded track replaces it; the on/off switch
+    // itself won't need to change either way. Shown on every device, unlike
+    // the god-mode switch, since there's no touch-only alternative for it.
+    #createMusicCheckbox() {
+        const existing = document.getElementById("game-music-checkbox");
+        if (existing) {
+            existing.remove();
         }
 
         const wrapper = document.createElement("label");
-        wrapper.id = "game-godmode-checkbox";
-        wrapper.style.position = "fixed";
-        wrapper.style.right = "18px";
+        wrapper.id = "game-music-checkbox";
+        wrapper.className = "hud-toggle";
+        wrapper.style.left = "18px";
         wrapper.style.top = "18px";
-        wrapper.style.zIndex = "25";
-        wrapper.style.display = "flex";
-        wrapper.style.alignItems = "center";
-        wrapper.style.gap = "8px";
-        wrapper.style.padding = "10px 14px";
-        wrapper.style.borderRadius = "12px";
-        wrapper.style.background = "rgba(7, 19, 31, 0.8)";
-        wrapper.style.border = "1px solid rgba(255, 209, 102, 0.7)";
-        wrapper.style.color = "#f5f7fa";
-        wrapper.style.font = "600 14px/1 Arial, sans-serif";
-        wrapper.style.cursor = "pointer";
 
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
-        checkbox.checked = this.#isGodModeEnabled;
+        checkbox.checked = this.#music.isPlaying;
         checkbox.addEventListener("change", (event) => {
-            this.#isGodModeEnabled = event.target.checked;
+            if (event.target.checked) {
+                this.#music.start();
+            }
+            else {
+                this.#music.stop();
+            }
         });
 
-        const text = document.createTextNode("Безсмертя");
+        const icon = document.createElement("span");
+        icon.className = "hud-toggle__icon";
+        icon.textContent = "♪";
+
+        const label = document.createElement("span");
+        label.className = "hud-toggle__label";
+        label.textContent = "Музика";
+
         wrapper.appendChild(checkbox);
-        wrapper.appendChild(text);
+        wrapper.appendChild(icon);
+        wrapper.appendChild(label);
 
         document.body.appendChild(wrapper);
+    }
+
+    // Only shown on the main menu and the pause menu - not while actually
+    // playing, so it doesn't sit on top of the action.
+    #removeMusicCheckbox() {
+        document.getElementById("game-music-checkbox")?.remove();
     }
 
     #showHeroIntro() {
@@ -426,6 +461,7 @@ export default class Game {
         this.#selectedMenuOption = 0;
         this.#menuContainer = this.#createMenu("ПАУЗА", ["Продовжити", "Головне меню"],
             this.#isTouch ? "Торкніться пункту, щоб вибрати" : "Стрілки - вибір, Enter - підтвердити");
+        this.#createMusicCheckbox();
     }
 
     #showOrientationMenu() {
@@ -740,7 +776,7 @@ export default class Game {
         header.y = kicker.y + 24;
         container.addChild(header);
 
-        const stamp = new Text("ЦІЛКОМ ТАЄМНО  ·  ДЛЯ ПОЗИВНОГО «ДЕВ'ЯТИЙ»", new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 15, fill: 0xff4b3a, letterSpacing: 3 }));
+        const stamp = new Text("ЦІЛКОМ ТАЄМНО  ·  ДЛЯ СПЕЦПРИЗНАЧЕНЦЯ З ПОЗИВНИМ «ДЕВ'ЯТИЙ»", new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 15, fill: 0xff4b3a, letterSpacing: 3 }));
         stamp.anchor.set(0.5, 0);
         stamp.x = w / 2;
         stamp.y = header.y + header.height + 4;
@@ -759,7 +795,7 @@ export default class Game {
         const lore = [
             "Диктатор сховався в бункері на далекому острові посеред джунглів. Звідти він віддає накази своїй армії і певен, що до нього ніхто не дістанеться.",
             "Розвідка знайшла шлях: річка, міст, скелі й густі джунглі, а за ними — сталева стіна бункера з двома гарматами і броньованими воротами.",
-            "Велика група не пройде непомітно. Тому цієї ночі висаджується один боєць — позивний «Дев'ятий».",
+            "Велика група не пройде непомітно. Тому на завдання йде один спецпризначенець — найкращий боєць підрозділу сил спеціальних операцій, позивний «Дев'ятий». Нічний десант з парашутом: діяти тихо, швидко й без підтримки.",
             "Завдання: пройти крізь охорону, підбирати зброю зі збитих капсул постачання, розбити гармати на стіні й вибити ворота бункера.",
             "Зв'язок — лише після висадки і після штурму. Удачі, Дев'ятий.",
         ].join("\n\n");
@@ -1016,6 +1052,7 @@ export default class Game {
             this.#menuContainer?.destroy({ children: true });
             this.#menuContainer = undefined;
             this.#menuMode = "playing";
+            this.#removeMusicCheckbox();
         }
         else {
             this.#returnToMainMenu();
@@ -1485,12 +1522,12 @@ export default class Game {
                 }
 
                 if (dictatorDone && heroDone) {
-                    say("Не стріляй! Я здаюся!", dictator.x, groundY - 110);
+                    say("Не думал что ты зможешь зайти так далеко. Не убивай меня, и я отдам приказ своим людям....", dictator.x, groundY - 110);
                     next("plea");
                 }
             }
             else if (phase == "plea") {
-                if (t > 110) {
+                if (t > 200) {
                     bubbles.forEach((bubble) => bubble.destroy());
                     bubbles.length = 0;
                     dictator.textures = [this.#assets.getTexture("dictatorkneel0000")]; // going down
@@ -1603,7 +1640,15 @@ export default class Game {
 
     #createSpeechBubble(message) {
         const bubble = new Container();
-        const text = new Text(message, new TextStyle({ fontFamily: "Arial", fontWeight: "bold", fontSize: 18, fill: 0x111111 }));
+        const text = new Text(message, new TextStyle({
+            fontFamily: "Arial",
+            fontWeight: "bold",
+            fontSize: 18,
+            fill: 0x111111,
+            wordWrap: true,
+            wordWrapWidth: 340,
+            align: "center",
+        }));
         const padX = 14;
         const padY = 9;
         const w = text.width + padX * 2;
@@ -1826,6 +1871,7 @@ export default class Game {
             if (this.#menuMode != "playing") {
                 return;
             }
+            this.#registerCheatPress("fire");
             if(!this.#hero.isDead && !this.#hero.isFall && !this.#hero.isDiving){
                 const bullets = this.#entities.filter(bullet => bullet.type == this.#hero.bulletContext.type);
                 if(bullets.length > 10){
@@ -1851,6 +1897,7 @@ export default class Game {
             if (this.#menuMode != "playing") {
                 return;
             }
+            this.#registerCheatPress("jump");
             if (this.keyboardProcessor.isButtonPressed("ArrowDown")
                 && !(this.keyboardProcessor.isButtonPressed("ArrowLeft") || this.keyboardProcessor.isButtonPressed("ArrowRight"))
                 && !this.#hero.isInWater) {
@@ -1940,6 +1987,7 @@ export default class Game {
                 this.#menuContainer?.destroy({ children: true });
                 this.#menuContainer = undefined;
                 this.#menuMode = "playing";
+                this.#removeMusicCheckbox();
             }
             else if (this.#menuMode == "briefing") {
                 this.#showMainMenu();

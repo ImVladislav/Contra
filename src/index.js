@@ -1,4 +1,4 @@
-import Game from "./Game.js?v=11"
+import Game from "./Game.js?v=14"
 import * as PIXI from "../lib/pixi.mjs"
 import AssetsFactory from "./AssetsFactory.js";
 
@@ -233,27 +233,6 @@ moveZone.addEventListener("pointerup", releaseJoystick);
 moveZone.addEventListener("pointercancel", releaseJoystick);
 moveZone.addEventListener("lostpointercapture", releaseJoystick);
 
-// Secret code: FIRE x4, then JUMP x4 (taps less than 2 s apart) switches on
-// "Непереможний Дев'ятий" (god mode) - the phone/tablet replacement for the
-// "Безсмертя" checkbox.
-const CHEAT_CODE = ["fire", "fire", "fire", "fire", "jump", "jump", "jump", "jump"];
-let cheatTaps = [];
-let lastCheatTap = 0;
-const registerCheatTap = (button) => {
-    const name = button.classList.contains("touch-fire") ? "fire" : button.classList.contains("touch-jump") ? "jump" : "other";
-    const now = performance.now();
-    if (now - lastCheatTap > 2000) {
-        cheatTaps = [];
-    }
-    lastCheatTap = now;
-    cheatTaps.push(name);
-    cheatTaps = cheatTaps.slice(-CHEAT_CODE.length);
-    if (cheatTaps.length == CHEAT_CODE.length && cheatTaps.every((tap, i) => tap == CHEAT_CODE[i])) {
-        cheatTaps = [];
-        game.enableInvincibleCheat();
-    }
-};
-
 touchControls.querySelectorAll(".touch-actions [data-keys]").forEach((button) => {
     const keyCodes = button.dataset.keys.split(",");
     const pressedKeys = new Set();
@@ -276,7 +255,6 @@ touchControls.querySelectorAll(".touch-actions [data-keys]").forEach((button) =>
     };
 
     button.addEventListener("pointerdown", press);
-    button.addEventListener("pointerdown", () => registerCheatTap(button));
     button.addEventListener("pointerup", release);
     button.addEventListener("pointercancel", release);
     button.addEventListener("lostpointercapture", release);

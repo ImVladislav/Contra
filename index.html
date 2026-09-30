@@ -77,9 +77,83 @@
         height: 100%;
       }
 
-      /* Phones/tablets already have the "Непереможний Дев'ятий" secret tap
-         code as their god-mode toggle - the "Безсмертя" checkbox is a
-         desktop-only debug control and just clutters the touch UI. */
+      /* Shared look for the small HUD switches (currently just "Музика") -
+         a tactical dossier-style pill with a custom red/gold toggle instead
+         of a bare browser checkbox, matching the menus' Anton/gold/red
+         language. Sized in em so the landscape-phone font-size override
+         below scales the whole widget down uniformly. */
+      .hud-toggle {
+        position: fixed;
+        z-index: 25;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px 8px 10px;
+        border-radius: 10px;
+        background: linear-gradient(
+          135deg,
+          rgba(11, 25, 37, 0.92),
+          rgba(24, 53, 74, 0.84)
+        );
+        border: 1.5px solid rgba(255, 209, 102, 0.55);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+        cursor: pointer;
+        user-select: none;
+        font-size: 15px;
+      }
+      .hud-toggle__icon {
+        display: grid;
+        place-items: center;
+        width: 1.4em;
+        height: 1.4em;
+        font-size: 1.1em;
+        color: #ffd166;
+        text-shadow: 0 1px 0 #000;
+      }
+      .hud-toggle__label {
+        font-family: Anton, Impact, "Arial Black", Arial, sans-serif;
+        letter-spacing: 0.04em;
+        color: #dfeffb;
+        text-transform: uppercase;
+      }
+      .hud-toggle input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        flex: none;
+        width: 2.6em;
+        height: 1.4em;
+        margin: 0;
+        border-radius: 999px;
+        background: rgba(7, 19, 31, 0.9);
+        border: 1.5px solid rgba(223, 239, 251, 0.35);
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          border-color 0.2s;
+      }
+      .hud-toggle input[type="checkbox"]::before {
+        content: "";
+        position: absolute;
+        top: 0.1em;
+        left: 0.1em;
+        width: 1em;
+        height: 1em;
+        border-radius: 50%;
+        background: #dfeffb;
+        transition:
+          transform 0.2s ease,
+          background 0.2s ease;
+      }
+      .hud-toggle input[type="checkbox"]:checked {
+        background: linear-gradient(135deg, #ff5a3c, #b3261a);
+        border-color: #ffd166;
+      }
+      .hud-toggle input[type="checkbox"]:checked::before {
+        transform: translateX(1.15em);
+        background: #ffd166;
+      }
+
       @media (pointer: coarse) {
         #game-godmode-checkbox {
           display: none !important;
@@ -341,7 +415,7 @@
         }
       }
 
-      /* "Непереможний Дев'ятий" enabled (secret code on the touch buttons) */
+      /* activation message */
       .cheat-modal {
         position: fixed;
         inset: 0;
@@ -447,7 +521,8 @@
         }
         .rotate-overlay__title {
           font:
-            900 clamp(22px, 7vw, 34px) / 1.15 Impact,
+            900 clamp(22px, 7vw, 34px) / 1.15 Anton,
+            Impact,
             "Arial Black",
             Arial,
             sans-serif;
@@ -561,6 +636,14 @@
           font-size: 11px !important;
           border-radius: 8px !important;
         }
+        #game-music-checkbox {
+          top: 8px !important;
+          left: 8px !important;
+          padding: 5px 9px !important;
+          gap: 5px !important;
+          font-size: 11px !important;
+          border-radius: 8px !important;
+        }
       }
 
       @media (orientation: portrait) and (pointer: coarse) {
@@ -595,6 +678,11 @@
         </g>
         <!-- the phone -->
         <g class="rotate-phone">
+          <defs>
+            <clipPath id="rotate-icon-clip">
+              <rect x="96" y="94" width="48" height="48" rx="10" />
+            </clipPath>
+          </defs>
           <rect
             x="82"
             y="46"
@@ -606,35 +694,24 @@
             stroke-width="6"
           />
           <rect x="91" y="62" width="58" height="112" rx="4" fill="#18354a" />
-          <!-- a tiny game scene on the screen -->
-          <rect x="91" y="140" width="58" height="34" fill="#1f6aa0" />
-          <rect x="91" y="128" width="58" height="12" fill="#3c8a2e" />
-          <path d="M 104 98 Q 120 78 136 98 Z" fill="#5d6b34" />
-          <path
-            d="M 106 98 L 120 116 L 134 98"
-            fill="none"
-            stroke="#dfeffb"
-            stroke-width="1.5"
+          <!-- the game's own favicon, shown on the phone's screen -->
+          <image
+            href="assets/icons/apple-touch-icon.png"
+            x="96"
+            y="94"
+            width="48"
+            height="48"
+            clip-path="url(#rotate-icon-clip)"
           />
-          <text
-            x="120"
-            y="126"
-            text-anchor="middle"
-            font-family="Arial Black, Arial, sans-serif"
-            font-weight="900"
-            font-size="16"
-            fill="#ffd166"
-          >
-            9
-          </text>
           <rect x="108" y="182" width="24" height="4" rx="2" fill="#dfeffb" />
         </g>
       </svg>
-      <div class="rotate-overlay__title">Поверніть телефон</div>
+      <div class="rotate-overlay__title">Розверни телефон</div>
       <div class="rotate-overlay__text">
-        Поверніть пристрій боком, щоб продовжити місію.
+        Зв'язок стабільний лише в горизонтальному положенні. Розверни
+        телефон боком і продовжуй місію.
       </div>
     </div>
-    <script src="src/index.js?v=11" type="module"></script>
+    <script src="src/index.js?v=14" type="module"></script>
   </body>
 </html>
