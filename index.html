@@ -8,25 +8,25 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no"
     />
     <title>Дев'ятий</title>
-    <link rel="icon" href="favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png" />
-    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
-    <!-- "Add to Home Screen" launches with no browser chrome at all (URL
-         bar included) - the only fully reliable cross-platform way to get a
-         true fullscreen app on a phone, since the Fullscreen API alone
-         can't hide the address bar in an ordinary browser tab. -->
+    <link rel="icon" href="assets/sprites/card-pirates.png" sizes="any" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="assets/sprites/card-pirates.png"
+    />
+    <link rel="apple-touch-icon" href="assets/sprites/card-pirates.png" />
+
     <link rel="manifest" href="site.webmanifest" />
     <meta name="theme-color" content="#07131f" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="Дев'ятий" />
-    <!-- "Impact" (used for every headline in the game) is a Windows-only
-         system font - anywhere else it silently falls back to a plain
-         sans-serif on canvas text, since <canvas> text has no font
-         fallback chain the way CSS does. Anton is a free look-alike that
-         actually loads everywhere. index.js awaits it before building any
-         menu so the very first frame already has it, not a flash of Arial. -->
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -360,7 +360,11 @@
         padding: 18px 24px;
         border: 2px solid #ffd166;
         border-radius: 16px;
-        background: linear-gradient(135deg, rgba(11, 25, 37, 0.96), rgba(24, 53, 74, 0.92));
+        background: linear-gradient(
+          135deg,
+          rgba(11, 25, 37, 0.96),
+          rgba(24, 53, 74, 0.92)
+        );
         box-shadow: 0 0 30px rgba(255, 209, 102, 0.35);
         text-align: center;
       }
@@ -373,23 +377,37 @@
         border: 2px solid #ffd166;
         background: radial-gradient(circle, #ffe49a, #c68010);
         color: #07131f;
-        font: 900 30px/1 Arial, sans-serif;
+        font:
+          900 30px/1 Arial,
+          sans-serif;
       }
       .cheat-modal__title {
-        font: 900 20px/1.2 Arial, sans-serif;
+        font:
+          900 20px/1.2 Arial,
+          sans-serif;
         color: #ffd166;
         text-transform: uppercase;
         letter-spacing: 0.04em;
       }
       .cheat-modal__text {
-        font: 500 15px/1.35 Arial, sans-serif;
+        font:
+          500 15px/1.35 Arial,
+          sans-serif;
         color: #dfeffb;
       }
       @keyframes cheat-fade {
-        0% { opacity: 0; }
-        10% { opacity: 1; }
-        80% { opacity: 1; }
-        100% { opacity: 0; }
+        0% {
+          opacity: 0;
+        }
+        10% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+        }
       }
 
       /* Phone/tablet held upright: a full-screen "rotate your phone" card with
@@ -414,7 +432,11 @@
           height: 100dvh;
           padding: max(24px, env(safe-area-inset-top)) 24px
             max(24px, env(safe-area-inset-bottom));
-          background: radial-gradient(circle at 50% 40%, #18354a 0%, #07131f 75%);
+          background: radial-gradient(
+            circle at 50% 40%,
+            #18354a 0%,
+            #07131f 75%
+          );
           color: #dfeffb;
           text-align: center;
         }
@@ -424,7 +446,11 @@
           max-height: 50vh;
         }
         .rotate-overlay__title {
-          font: 900 clamp(22px, 7vw, 34px) / 1.15 Impact, "Arial Black", Arial, sans-serif;
+          font:
+            900 clamp(22px, 7vw, 34px) / 1.15 Impact,
+            "Arial Black",
+            Arial,
+            sans-serif;
           letter-spacing: 0.06em;
           color: #ffd166;
           text-transform: uppercase;
@@ -432,7 +458,9 @@
         }
         .rotate-overlay__text {
           max-width: 80vw;
-          font: 500 clamp(14px, 4.2vw, 18px) / 1.4 Arial, sans-serif;
+          font:
+            500 clamp(14px, 4.2vw, 18px) / 1.4 Arial,
+            sans-serif;
           color: #a9c6d9;
         }
       }
@@ -445,14 +473,31 @@
         animation: rotate-arrow 2.8s ease-in-out infinite;
       }
       @keyframes rotate-phone {
-        0%, 18% { transform: rotate(0deg); }
-        45%, 78% { transform: rotate(-90deg); }
-        100% { transform: rotate(0deg); }
+        0%,
+        18% {
+          transform: rotate(0deg);
+        }
+        45%,
+        78% {
+          transform: rotate(-90deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
       }
       @keyframes rotate-arrow {
-        0%, 12% { opacity: 0; }
-        25%, 45% { opacity: 1; }
-        60%, 100% { opacity: 0; }
+        0%,
+        12% {
+          opacity: 0;
+        }
+        25%,
+        45% {
+          opacity: 1;
+        }
+        60%,
+        100% {
+          opacity: 0;
+        }
       }
 
       /* no stick/buttons over the menus - the menu items are tapped */
@@ -537,25 +582,59 @@
     <div class="rotate-overlay" aria-live="polite">
       <svg class="rotate-overlay__art" viewBox="0 0 240 240" aria-hidden="true">
         <!-- curved "turn" arrow -->
-        <g class="rotate-arrow" fill="none" stroke="#ffd166" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+        <g
+          class="rotate-arrow"
+          fill="none"
+          stroke="#ffd166"
+          stroke-width="7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
           <path d="M 196 92 A 84 84 0 0 0 104 38" />
           <path d="M 118 24 L 102 38 L 118 52" />
         </g>
         <!-- the phone -->
         <g class="rotate-phone">
-          <rect x="82" y="46" width="76" height="148" rx="14" fill="#0b1925" stroke="#dfeffb" stroke-width="6" />
+          <rect
+            x="82"
+            y="46"
+            width="76"
+            height="148"
+            rx="14"
+            fill="#0b1925"
+            stroke="#dfeffb"
+            stroke-width="6"
+          />
           <rect x="91" y="62" width="58" height="112" rx="4" fill="#18354a" />
           <!-- a tiny game scene on the screen -->
           <rect x="91" y="140" width="58" height="34" fill="#1f6aa0" />
           <rect x="91" y="128" width="58" height="12" fill="#3c8a2e" />
           <path d="M 104 98 Q 120 78 136 98 Z" fill="#5d6b34" />
-          <path d="M 106 98 L 120 116 L 134 98" fill="none" stroke="#dfeffb" stroke-width="1.5" />
-          <text x="120" y="126" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="16" fill="#ffd166">9</text>
+          <path
+            d="M 106 98 L 120 116 L 134 98"
+            fill="none"
+            stroke="#dfeffb"
+            stroke-width="1.5"
+          />
+          <text
+            x="120"
+            y="126"
+            text-anchor="middle"
+            font-family="Arial Black, Arial, sans-serif"
+            font-weight="900"
+            font-size="16"
+            fill="#ffd166"
+          >
+            9
+          </text>
           <rect x="108" y="182" width="24" height="4" rx="2" fill="#dfeffb" />
         </g>
       </svg>
       <div class="rotate-overlay__title">Поверніть телефон</div>
-      <div class="rotate-overlay__text">Дев'ятий воює лише горизонтально - поверніть пристрій боком, щоб продовжити місію.</div>
+      <div class="rotate-overlay__text">
+        Дев'ятий воює лише горизонтально - поверніть пристрій боком, щоб
+        продовжити місію.
+      </div>
     </div>
     <script src="src/index.js?v=9" type="module"></script>
   </body>
