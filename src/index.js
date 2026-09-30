@@ -1,4 +1,4 @@
-import Game from "./Game.js?v=9"
+import Game from "./Game.js?v=11"
 import * as PIXI from "../lib/pixi.mjs"
 import AssetsFactory from "./AssetsFactory.js";
 

@@ -1380,14 +1380,14 @@ export default class Game {
         const dictatorStopX = gateX - 110;
         const heroStopX = dictatorStopX - 170; // first stops at a distance, walks up later
 
-        // Side-view sprites (~277x410, character ~207x401 within that),
-        // facing left: 4 walk frames, standing, going down on one knee,
-        // kneeling with hands up.
+        // Fictional Dictator, side-view pixel sprites (48x72), facing left:
+        // 4 walk frames, standing, going down on his knees, begging on his
+        // knees (2 frames) and the headless body for the shot.
         const walkTextures = ["dictator0000", "dictator0001", "dictator0002", "dictator0003"].map((name) => this.#assets.getTexture(name));
         const dictator = new AnimatedSprite(walkTextures);
         dictator.animationSpeed = 1 / 7;
         dictator.anchor.set(0.5, 1);
-        dictator.scale.set(0.235); // matches the old 48x72 art's on-screen size
+        dictator.scale.set(1.35);
         dictator.x = gateX;
         dictator.y = groundY + 4;
         dictator.alpha = 0;
@@ -1416,7 +1416,7 @@ export default class Game {
 
         const head = new Sprite(this.#assets.getTexture("dictatorhead0000"));
         head.anchor.set(0.5);
-        head.scale.set(0.16); // matches the old 17x17 art's on-screen size
+        head.scale.set(1.35);
         head.visible = false;
         const headMotion = { vx: 0, vy: 0, bounced: false };
         const flash = new Graphics();
@@ -1485,24 +1485,33 @@ export default class Game {
                 }
 
                 if (dictatorDone && heroDone) {
-                    say("Не стріляй! Я здаюся!", dictator.x, groundY - 110);
-                    next("plea");
-                }
-            }
-            else if (phase == "plea") {
-                if (t > 110) {
-                    bubbles.forEach((bubble) => bubble.destroy());
-                    bubbles.length = 0;
-                    dictator.textures = [this.#assets.getTexture("dictatorkneel0000")]; // going down
+                    dictator.textures = [this.#assets.getTexture("dictatorkneel0000")]; // drops to his knees
                     next("kneel");
                 }
             }
             else if (phase == "kneel") {
-                if (t > 18 && dictator.texture != this.#assets.getTexture("dictatorkneel0001")) {
-                    dictator.textures = [this.#assets.getTexture("dictatorkneel0001")]; // on his knee, hands up
+                if (t > 18) {
+                    // on his knees, wringing his hands - he tries to buy his way out
+                    dictator.textures = ["dictatorbeg0000", "dictatorbeg0001"].map((name) => this.#assets.getTexture(name));
+                    dictator.animationSpeed = 1 / 12;
+                    dictator.play();
+                    say("Стой! Не стреляй! Давай договоримся!", dictator.x, groundY - 110);
+                    next("plea");
                 }
-                if (t > 50) {
-                    say("Кінець твоїм наказам.", hero.x + 30, groundY - 110);
+            }
+            else if (phase == "plea") {
+                if (t > 120) {
+                    bubbles.forEach((bubble) => bubble.destroy());
+                    bubbles.length = 0;
+                    say("Деньги, золото, остров - всё тебе отдам!", dictator.x, groundY - 110);
+                    next("bribe");
+                }
+            }
+            else if (phase == "bribe") {
+                if (t > 130) {
+                    bubbles.forEach((bubble) => bubble.destroy());
+                    bubbles.length = 0;
+                    say("Настав час розплати.", hero.x + 30, groundY - 110);
                     next("approach");
                 }
             }
@@ -1526,8 +1535,9 @@ export default class Game {
                     flash.x = hero.x + 86;
                     flash.y = hero.y + 20;
                     flash.visible = true;
-                    dictator.textures = [this.#assets.getTexture("dictatorheadless0000")];
-                    head.x = dictator.x + 1;
+                    dictator.stop();
+                    dictator.textures = [this.#assets.getTexture("dictatorbegheadless0000")];
+                    head.x = dictator.x - 3;
                     head.y = dictator.y - 60;
                     head.visible = true;
                     headMotion.vx = 1.8;
