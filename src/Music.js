@@ -6,7 +6,7 @@ export default class Music {
     #audio;
     #isPlaying = false;
 
-    constructor(src = "./theme.wav") {
+    constructor(src = "./theme.mp3") {
         this.#audio = new Audio(src);
         this.#audio.loop = true;
         this.#audio.volume = 0.35;
